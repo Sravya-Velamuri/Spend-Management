@@ -51,7 +51,7 @@ const DEFAULT_XML_FILENAME = "SpendByTADADef01.xml";
 const LAST_LOADED_FILENAME_KEY = "spendwiseLastLoadedFile";
 const APP_CONFIG_DATA_KEY_PREFIX = "spendwise_config_";
 const DEFAULT_HOME_COUNTRY = "USA";
-const BASE_TARIFF_RATE = 0.05; // 5% base tariff
+const BASE_TARIFF_RATE = 0.05; // 5% base tariff - this can be adjusted based on the app's requirements
 
 const HEADER_HEIGHT_PX = 64;
 const SUMMARY_STATS_HEIGHT_PX = 60;
