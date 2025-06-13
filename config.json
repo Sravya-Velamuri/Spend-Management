@@ -1,0 +1,78 @@
+{
+  "appName": "SpendWise",
+  "version": "1.0.0",
+  "design": {
+    "themes": {
+      "light": {
+        "primary": "#FFFFFF",
+        "secondary": "#F0F0F0",
+        "accent": "#007BFF",
+        "text": "#333333"
+      },
+      "dark": {
+        "primary": "#333333",
+        "secondary": "#444444",
+        "accent": "#007BFF",
+        "text": "#FFFFFF"
+      },
+      "tada": {
+        "primary": "#FFD700",
+        "secondary": "#FFFFFF",
+        "accent": "#000000",
+        "text": "#333333"
+      }
+    },
+    "layout": {
+      "header": {
+        "height": "60px",
+        "showLogo": true,
+        "showAppName": true
+      },
+      "sidebar": {
+        "width": "250px",
+        "collapsible": true
+      },
+      "mainContent": {
+        "padding": "20px",
+        "columns": 3
+      }
+    },
+    "styling": {
+      "typography": {
+        "fontFamily": "'Roboto', sans-serif",
+        "fontSize": {
+          "base": "16px",
+          "h1": "2.5rem",
+          "h2": "2rem",
+          "h3": "1.75rem",
+          "h4": "1.5rem",
+          "h5": "1.25rem",
+          "h6": "1rem"
+        }
+      },
+      "components": {
+        "button": {
+          "borderRadius": "8px",
+          "padding": "10px 20px",
+          "boxShadow": "0 2px 4px rgba(0,0,0,0.1)"
+        },
+        "card": {
+          "borderRadius": "12px",
+          "padding": "20px",
+          "boxShadow": "0 4px 8px rgba(0,0,0,0.1)"
+        },
+        "input": {
+          "borderRadius": "8px",
+          "padding": "10px",
+          "border": "1px solid #CCCCCC"
+        }
+      }
+    }
+  },
+  "features": {
+    "whatIfAnalysis": true,
+    "dataImport": ["csv", "xlsx"],
+    "dataExport": ["xml", "json"],
+    "aiAssistant": true
+  }
+}
