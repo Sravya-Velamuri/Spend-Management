@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
-import { Package, Info, FileUp, Trash2, Sigma, PlusCircle, Focus, X, TrendingUp, BarChart3, BadgeDollarSign, Boxes, Users2, Tag, ShoppingCart, Banknote } from "lucide-react"; 
+import { Package, Info, Trash2, Sigma, PlusCircle, Focus, X, TrendingUp, BarChart3, BadgeDollarSign, Boxes, Users2, Tag, ShoppingCart, Banknote } from "lucide-react"; 
 // Bar, BarChart, CartesianGrid, XAxis, YAxis, Legend, ResponsiveContainer, Tooltip as RechartsTooltip removed as chart is removed
 // ChartContainer, ChartTooltip, ChartTooltipContent removed as chart is removed
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -20,7 +20,6 @@ interface UpdatePartsTabProps {
   parts: Part[];
   setParts: React.Dispatch<React.SetStateAction<Part[]>>;
   onAddPart: () => void;
-  onOpenUploadDialog: () => void;
   partsWithSpend: (Part & { annualSpend: number })[];
   suppliers: Supplier[];
   partSupplierAssociations: PartSupplierAssociation[];
@@ -56,7 +55,6 @@ export default function UpdatePartsTab({
   parts,
   setParts,
   onAddPart,
-  onOpenUploadDialog,
   partsWithSpend,
   suppliers,
   partSupplierAssociations,
@@ -253,16 +251,6 @@ export default function UpdatePartsTab({
               })}
             </div>
             <div className="flex items-center gap-2 ml-auto sm:ml-0 self-start sm:self-center">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button onClick={onOpenUploadDialog} size="icon" variant="outline" aria-label="Upload Parts CSV">
-                    <FileUp className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Upload Parts CSV</p>
-                </TooltipContent>
-              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button onClick={onAddPart} size="icon" aria-label="Add New Part">

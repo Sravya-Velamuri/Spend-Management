@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Fingerprint, Building, FileText, PlusCircle, Info, UploadCloud, Trash2, Globe2, MapPin, Loader2 } from "lucide-react"; 
+import { Fingerprint, Building, FileText, PlusCircle, Info, Trash2, Globe2, MapPin, Loader2 } from "lucide-react"; 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import SupplierWorldMap from './supplier-world-map'; 
@@ -16,10 +16,9 @@ interface UpdateSuppliersTabProps {
   suppliers: Supplier[];
   setSuppliers: React.Dispatch<React.SetStateAction<Supplier[]>>;
   onAddSupplier: () => void;
-  onOpenUploadDialog: () => void;
 }
 
-export default function UpdateSuppliersTab({ suppliers, setSuppliers, onAddSupplier, onOpenUploadDialog }: UpdateSuppliersTabProps) {
+export default function UpdateSuppliersTab({ suppliers, setSuppliers, onAddSupplier }: UpdateSuppliersTabProps) {
   const { toast } = useToast();
   const [geocodingSupplierId, setGeocodingSupplierId] = useState<string | null>(null);
 
@@ -150,9 +149,6 @@ export default function UpdateSuppliersTab({ suppliers, setSuppliers, onAddSuppl
             <div className="flex justify-between items-center mb-1.5">
                <h3 className="text-base font-semibold text-muted-foreground">Supplier Details</h3>
               <div className="flex items-center gap-2 ml-auto"> 
-                <Button onClick={onOpenUploadDialog} size="sm" variant="outline" className="text-xs">
-                  <UploadCloud className="mr-1.5 h-3.5 w-3.5" /> Upload Suppliers CSV
-                </Button>
                 <Button onClick={onAddSupplier} size="sm" className="text-xs">
                   <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Add New Supplier
                 </Button>

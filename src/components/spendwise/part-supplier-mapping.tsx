@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Package, Building, ArrowRightLeft, UploadCloud, Info, Trash2, Plus, Target, CheckCircle, Sparkles, Search } from "lucide-react";
+import { Package, Building, ArrowRightLeft, Info, Trash2, Plus, Target, CheckCircle, Sparkles, Search } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 interface PartSupplierMappingTabProps {
@@ -14,7 +14,6 @@ interface PartSupplierMappingTabProps {
   suppliers: Supplier[];
   partSupplierAssociations: PartSupplierAssociation[];
   setPartSupplierAssociations: React.Dispatch<React.SetStateAction<PartSupplierAssociation[]>>;
-  onOpenUploadDialog: () => void;
 }
 
 interface DragItem {
@@ -28,7 +27,6 @@ export default function PartSupplierMappingTab({
   suppliers, 
   partSupplierAssociations, 
   setPartSupplierAssociations, 
-  onOpenUploadDialog 
 }: PartSupplierMappingTabProps) {
   const [draggedItem, setDraggedItem] = useState<DragItem | null>(null);
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
@@ -222,18 +220,6 @@ export default function PartSupplierMappingTab({
                   <p className="text-xs max-w-xs">
                     Drag parts from the 'Available Parts' list and drop them onto a supplier in the 'Available Suppliers' list (or vice-versa) to link them. Associations appear in the 'Source Network' list. Each part can be sourced from multiple suppliers. Green ring indicates a valid drop target.
                   </p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <div className="flex items-center gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button onClick={onOpenUploadDialog} size="sm" variant="outline">
-                    <UploadCloud className="mr-1.5 h-3.5 w-3.5" /> Upload CSV
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">Upload a CSV file with PartNumber and SupplierId columns to create multiple associations.</p>
                 </TooltipContent>
               </Tooltip>
             </div>

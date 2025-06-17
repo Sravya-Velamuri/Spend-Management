@@ -4,7 +4,7 @@ import type { SpendDataPoint, CountDataPoint } from '@/app/page';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UploadCloud, FolderTree, Search, Plus, Trash2, Package, Target, Palette, TrendingUp, Hash, Info, Activity } from "lucide-react";
+import { FolderTree, Search, Plus, Trash2, Package, Target, Palette, TrendingUp, Hash, Info, Activity } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ScatterChart, Scatter as RechartsScatter, ZAxis, Tooltip as RechartsTooltip, Cell } from 'recharts';
@@ -30,7 +30,6 @@ interface UploadPartCategoryTabProps {
   partCategoryMappings: PartCategoryMapping[];
   spendByCategoryData: SpendDataPoint[];
   partsPerCategoryData: CountDataPoint[];
-  onOpenUploadDialog: () => void;
   setPartCategoryMappings?: React.Dispatch<React.SetStateAction<PartCategoryMapping[]>>;
 }
 
@@ -66,7 +65,6 @@ export default function UploadPartCategoryTab({
   partCategoryMappings, 
   spendByCategoryData, 
   partsPerCategoryData, 
-  onOpenUploadDialog,
   setPartCategoryMappings 
 }: UploadPartCategoryTabProps) {
   const [draggedItem, setDraggedItem] = useState<DragItem | null>(null);
@@ -331,9 +329,6 @@ export default function UploadPartCategoryTab({
           <div className="flex items-center gap-2">
             <Button onClick={handleQuickCategorize} size="sm" variant="outline">
               <Plus className="mr-1.5 h-3.5 w-3.5" /> Quick Start
-            </Button>
-            <Button onClick={onOpenUploadDialog} size="sm" variant="outline">
-              <UploadCloud className="mr-1.5 h-3.5 w-3.5" /> Upload CSV
             </Button>
           </div>
         </div>
