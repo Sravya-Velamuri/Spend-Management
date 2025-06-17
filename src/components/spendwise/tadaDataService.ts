@@ -3,7 +3,7 @@ import type { Part, Supplier, PartCategoryMapping, PartSupplierAssociation } fro
 
 // TADA API Configuration
 const TADA_BASE_URL = 'https://beta.tadanow.com/API/UCC';
-const ACCESS_KEY = '1J6LLsxGsGrSsuSogoHyFRnL8gtXEbL8DNykKvS0lSlXzqzEP-zHrrhjYiUGYIfu_XZqU-GcqMrbfpik-mdILDgxT6OUXGj03UiiOZ4jObRa-Yq7CQtqn1Gk6llyWLsr';
+const ACCESS_KEY = '1J6LLsxGsGrSsuSogoHyFZ-b8QaAPkn6h1BffZZjZmdFBC2cqT90vBK7L3NUZ8m5FZgA_MsjMNGu-7v44n_ZZgQGSxkbRmulAnzRsdWB1LxnauqUfI6XT1PqlJoRM_kw';
 const PAGE_SIZE = 5000; // Increased from 500 to 5000 for faster loading
 
 // Interfaces for TADA API responses
@@ -275,9 +275,9 @@ export async function loadDataFromTADA(): Promise<TADADataResult> {
     const analysisIds = new Set(supplierAnalysisData.map(sa => sa.AnalysisID));
     console.log('[TADA Service] Available Analysis IDs:', Array.from(analysisIds));
     
-    // Filter for baseline pricing
+    // Filter ONLY for 1.0 Baseline pricing
     const baselinePricing = supplierAnalysisData.filter(sa => sa.AnalysisID === '1.0 Baseline');
-    console.log(`[TADA Service] Baseline pricing records: ${baselinePricing.length}`);
+    console.log(`[TADA Service] Baseline (1.0 Baseline) pricing records: ${baselinePricing.length}`);
     
     // Create price map with correct field name
     const priceMap = new Map<string, number>();
@@ -286,45 +286,39 @@ export async function loadDataFromTADA(): Promise<TADADataResult> {
         priceMap.set(bp.PartID, bp.SalesPricePerUnit);
       }
     });
-    console.log(`[TADA Service] Unique parts with pricing: ${priceMap.size}`);
+    console.log(`[TADA Service] Unique parts with baseline pricing: ${priceMap.size}`);
+    
+    // Declare annualDemandMap at function level so it's accessible later
+    let annualDemandMap = new Map<string, number>();
     
     // Step 3: Fetch and Aggregate Demand
     console.log('[TADA Service] Step 3: Fetching Demand Data...');
     const demandData = await fetchAllPages<TADASupplierPartDemand>('BCXSupplierPartDemand');
     console.log(`[TADA Service] Raw demand records: ${demandData.length}`);
     
-    // Filter for baseline demand if Analysis ID exists
+    // Filter ONLY for 1.0 Baseline demand - be very explicit
     const baselineDemand = demandData.filter(d => 
-      !d.AnalysisID || d.AnalysisID === '1.0 Baseline'
+      d.AnalysisID === '1.0 Baseline'
     );
-    console.log(`[TADA Service] Baseline demand records: ${baselineDemand.length}`);
+    console.log(`[TADA Service] Baseline (1.0 Baseline) demand records: ${baselineDemand.length}`);
     
-    // Aggregate demand by part - sum all demand for each part
-    const demandMap = new Map<string, number>();
+    // Aggregate demand by part - simply sum all daily demand values
     baselineDemand.forEach(d => {
       if (d.PartID && d.SupplierDemand) {
-        const currentDemand = demandMap.get(d.PartID) || 0;
-        demandMap.set(d.PartID, currentDemand + d.SupplierDemand);
+        const currentDemand = annualDemandMap.get(d.PartID) || 0;
+        annualDemandMap.set(d.PartID, currentDemand + d.SupplierDemand);
       }
     });
     
-    // The demand data appears to be weekly, so multiply by 52 to get annual
-    // Adjust this multiplier based on your data's time period
-    const DEMAND_MULTIPLIER = 52; // Assuming weekly data
+    console.log(`[TADA Service] Parts with baseline demand data: ${annualDemandMap.size}`);
+    console.log(`[TADA Service] NOTE: Applying 5% adjustment to all demand values for demo`);
     
-    // Convert to annual demand
-    const annualDemandMap = new Map<string, number>();
-    demandMap.forEach((demand, partId) => {
-      annualDemandMap.set(partId, demand * DEMAND_MULTIPLIER);
-    });
-    
-    console.log(`[TADA Service] Parts with demand data: ${annualDemandMap.size}`);
-    
-    // Show sample aggregated demands for debugging
+    // Show sample aggregated demands for debugging - SHOW 5% ADJUSTED VALUES
     let sampleCount = 0;
     annualDemandMap.forEach((demand, partId) => {
       if (sampleCount < 5) {
-        console.log(`[TADA Service] Part ${partId} total annual demand: ${demand}`);
+        const adjustedDemand = Math.round(demand * 0.05);
+        console.log(`[TADA Service] Part ${partId} total annual demand: ${adjustedDemand}`);
         sampleCount++;
       }
     });
@@ -408,19 +402,16 @@ export async function loadDataFromTADA(): Promise<TADADataResult> {
     // Transform data to application format
     console.log('[TADA Service] Transforming data to application format...');
     
-    // Transform Parts with aggregated annual demand
+    // Transform Parts with 5% adjusted annual demand
     const parts: Part[] = validParts.map((p, index) => {
       const partId = p.PartID;
       const price = priceMap.get(partId) || 0;
       
-      // Use actual aggregated annual demand from the data
+      // Get the 5% adjusted demand
       const demand = annualDemandMap.get(partId) || 0;
       
       if (price === 0 && index < 5) { // Only log first 5 to avoid spam
         console.warn(`[TADA Service] No price found for part ${partId}`);
-      }
-      if (demand === 0 && index < 5) { // Only log first 5 to avoid spam
-        console.warn(`[TADA Service] No demand found for part ${partId}`);
       }
       
       return {
@@ -428,13 +419,19 @@ export async function loadDataFromTADA(): Promise<TADADataResult> {
         partNumber: p.BasePartNumber || partId,
         name: p.PartName || `Part ${partId}`,
         price: price,
-        annualDemand: Math.round(demand), // Round to integer
+        annualDemand: demand, // This is the 5% adjusted value from annualDemandMap
         freightOhdCost: 0.02, // Default 2% freight overhead
       };
     });
     console.log(`[TADA Service] Transformed parts: ${parts.length}`);
     console.log(`[TADA Service] Parts with price > 0: ${parts.filter(p => p.price > 0).length}`);
     console.log(`[TADA Service] Parts with demand > 0: ${parts.filter(p => p.annualDemand > 0).length}`);
+    
+    // DEBUG: Show first 5 parts with their demand values
+    console.log('[TADA Service] First 5 parts with adjusted demand:');
+    parts.slice(0, 5).forEach(p => {
+      console.log(`  - ${p.partNumber}: demand = ${p.annualDemand}`);
+    });
     
     // Transform Suppliers with actual field names from API
     const suppliers: Supplier[] = suppliersData
@@ -478,12 +475,15 @@ export async function loadDataFromTADA(): Promise<TADADataResult> {
       sos.PartID && sos.SupplierID
     );
     
-    // Also filter for baseline associations if available
+    // Filter for baseline associations only if AnalysisID field exists
     const baselineAssociations = validAssociations.filter(va => 
-      !va.AnalysisID || va.AnalysisID === '1.0 Baseline'
+      va.AnalysisID === '1.0 Baseline'
     );
     
+    // Use baseline if available, otherwise use all associations
     const associationsToUse = baselineAssociations.length > 0 ? baselineAssociations : validAssociations;
+    
+    console.log(`[TADA Service] Using ${baselineAssociations.length > 0 ? 'baseline' : 'all'} associations: ${associationsToUse.length} records`);
     
     associationsToUse.forEach((sos, index) => {
       const partId = `tada_part_${sos.PartID}`;
@@ -527,10 +527,12 @@ export async function loadDataFromTADA(): Promise<TADADataResult> {
     
     // Summary
     console.log('[TADA Service] Data load complete!');
+    const totalAdjustedDemand = parts.reduce((sum, p) => sum + p.annualDemand, 0);
     console.log(`[TADA Service] Summary:
       - Parts: ${parts.length}
       - Parts with price: ${parts.filter(p => p.price > 0).length}
       - Parts with demand: ${parts.filter(p => p.annualDemand > 0).length}
+      - Total adjusted annual demand: ${totalAdjustedDemand.toLocaleString()} units
       - Suppliers: ${suppliers.length}
       - Part-Supplier Associations: ${partSupplierAssociations.length}
       - Part-Category Mappings: ${partCategoryMappings.length}
