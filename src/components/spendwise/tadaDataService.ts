@@ -1,12 +1,24 @@
 // tadaDataService.ts - TADA Knowledge Graph Data Service
 import type { Part, Supplier, PartCategoryMapping, PartSupplierAssociation } from '@/types/spendwise';
 
-// TADA API Configuration
+// SECURITY NOTE: In production,we should not do this - this is a hack not a solution
 const TADA_BASE_URL = 'https://beta.tadanow.com/API/UCC';
-const ACCESS_KEY = '1J6LLsxGsGrSsuSogoHyFZ-b8QaAPkn6h1BffZZjZmdFBC2cqT90vBK7L3NUZ8m5FZgA_MsjMNGu-7v44n_ZZgQGSxkbRmulAnzRsdWB1LxnauqUfI6XT1PqlJoRM_kw';
-const PAGE_SIZE = 25000; // Increased from 500 to 5000 for faster loading
+const PAGE_SIZE = 25000; 
+const MAX_CONCURRENT_REQUESTS = 10; 
 
-// Interfaces for TADA API responses
+
+const FALLBACK_ACCESS_KEY = '1J6LLsxGsGrSsuSogoHyFdxeTbbAuL2aqndoXDpXGWrSAn547zaCBHtNG-MJlHh90YnNuUdjfaaAhHq58wg2e8oGZ9qJJC8ocTcIslGkXOxafxG6M6MjZgge7Ubd8y7q';
+
+
+const AUTH_CREDENTIALS = {
+  userId: "uccadmin",
+  password: "Ultimate@789"
+};
+
+
+let CURRENT_ACCESS_KEY: string | null = null;
+
+
 interface TADAPartNode {
   PartID: string;
   PartName?: string | null;
@@ -104,9 +116,52 @@ export interface TADADataResult {
   partSupplierAssociations: PartSupplierAssociation[];
 }
 
+async function generateAccessKey(): Promise<string> {
+  console.log(`[TADA Auth] Generating access key using POST authentication...`);
+  
+  try {
+    const authUrl = `${TADA_BASE_URL}/Security/Check`;
+    console.log(`[TADA Auth] Authenticating at ${authUrl}`);
+    
+    const response = await fetch(authUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(AUTH_CREDENTIALS)
+    });
+    
+    if (response.ok) {
+      const accessKey = await response.json();
+      console.log(`[TADA Auth] Successfully generated access key`);
+      CURRENT_ACCESS_KEY = accessKey;
+      return accessKey;
+    } else {
+      console.log(`[TADA Auth] Authentication failed with status ${response.status}: ${response.statusText}`);
+      console.log(`[TADA Auth] Using fallback access key...`);
+      CURRENT_ACCESS_KEY = FALLBACK_ACCESS_KEY;
+      return FALLBACK_ACCESS_KEY;
+    }
+  } catch (error) {
+    console.log(`[TADA Auth] Authentication error:`, error);
+    console.log(`[TADA Auth] Using fallback access key...`);
+    CURRENT_ACCESS_KEY = FALLBACK_ACCESS_KEY;
+    return FALLBACK_ACCESS_KEY;
+  }
+}
+
+// Helper function to get current access key
+async function getAccessKey(): Promise<string> {
+  if (!CURRENT_ACCESS_KEY) {
+    return await generateAccessKey();
+  }
+  return CURRENT_ACCESS_KEY;
+}
+
 // Helper function to fetch data from TADA API
 async function fetchTADAData<T>(endpoint: string, pageIndex: number = 1, verbose: boolean = true): Promise<T[]> {
-  const url = `${TADA_BASE_URL}/${endpoint}?accessKey=${ACCESS_KEY}&pi=${pageIndex}&ps=${PAGE_SIZE}`;
+  const accessKey = await getAccessKey();
+  const url = `${TADA_BASE_URL}/${endpoint}?accessKey=${accessKey}&pi=${pageIndex}&ps=${PAGE_SIZE}`;
   
   if (verbose) {
     console.log(`[TADA API] Fetching from: ${endpoint}, Page: ${pageIndex}`);
@@ -117,6 +172,28 @@ async function fetchTADAData<T>(endpoint: string, pageIndex: number = 1, verbose
     
     if (!response.ok) {
       console.error(`[TADA API] HTTP Error: ${response.status} ${response.statusText}`);
+      
+      // If we get a 401 or 403, try regenerating the access key
+      if (response.status === 401 || response.status === 403) {
+        console.log(`[TADA API] Access denied, regenerating access key...`);
+        const newAccessKey = await generateAccessKey();
+        // Retry the request with new access key
+        const retryUrl = `${TADA_BASE_URL}/${endpoint}?accessKey=${newAccessKey}&pi=${pageIndex}&ps=${PAGE_SIZE}`;
+        const retryResponse = await fetch(retryUrl);
+        
+        if (retryResponse.ok) {
+          const responseData = await retryResponse.json();
+          let data: T[];
+          if (responseData.Data && Array.isArray(responseData.Data)) {
+            data = responseData.Data as T[];
+          } else if (Array.isArray(responseData)) {
+            data = responseData as T[];
+          } else {
+            data = [];
+          }
+          return data;
+        }
+      }
       
       // Try to get more error details
       let errorDetails = '';
@@ -159,46 +236,66 @@ async function fetchTADAData<T>(endpoint: string, pageIndex: number = 1, verbose
   }
 }
 
-// Fetch all pages of data
-async function fetchAllPages<T>(endpoint: string): Promise<T[]> {
-  let allData: T[] = [];
-  let pageIndex = 1;
-  let hasMoreData = true;
+// Parallel batch fetcher with concurrency control
+async function fetchBatchWithConcurrencyLimit<T>(
+  fetchPromises: Promise<T[]>[],
+  limit: number
+): Promise<T[]> {
+  const results: T[] = [];
   
-  console.log(`[TADA API] Starting paginated fetch for ${endpoint} (${PAGE_SIZE} records per page)`);
-  
-  while (hasMoreData) {
-    try {
-      const pageData = await fetchTADAData<T>(endpoint, pageIndex, pageIndex === 1);
-      
-      if (pageData.length === 0) {
-        hasMoreData = false;
-      } else {
-        allData = [...allData, ...pageData];
-        
-        if (pageData.length < PAGE_SIZE) {
-          hasMoreData = false;
-        } else {
-          pageIndex++;
-          // Show progress every 5 pages
-          if (pageIndex % 5 === 0) {
-            console.log(`[TADA API] Progress: Fetched ${allData.length} records so far from ${endpoint}...`);
-          }
-        }
-      }
-    } catch (error) {
-      console.error(`[TADA API] Error on page ${pageIndex}:`, error);
-      break;
-    }
+  // Process in chunks
+  for (let i = 0; i < fetchPromises.length; i += limit) {
+    const chunk = fetchPromises.slice(i, i + limit);
+    const chunkResults = await Promise.all(chunk);
+    chunkResults.forEach(items => results.push(...items));
   }
   
-  console.log(`[TADA API] Completed: ${allData.length} total records from ${endpoint} (${pageIndex} pages)`);
-  return allData;
+  return results;
+}
+
+// Optimized parallel page fetcher
+async function fetchAllPagesParallel<T>(endpoint: string): Promise<T[]> {
+  console.log(`[TADA API] Starting parallel fetch for ${endpoint}`);
+  
+  // First, get page 1 to determine if there are more pages
+  const firstPageData = await fetchTADAData<T>(endpoint, 1, true);
+  
+  if (firstPageData.length < PAGE_SIZE) {
+    // Only one page of data
+    console.log(`[TADA API] Completed: ${firstPageData.length} total records from ${endpoint} (1 page)`);
+    return firstPageData;
+  }
+  
+
+  const estimatedPages = 10; 
+  
+
+  const pagePromises: Promise<T[]>[] = [];
+  for (let page = 2; page <= estimatedPages; page++) {
+    pagePromises.push(fetchTADAData<T>(endpoint, page, false));
+  }
+
+  const remainingData = await fetchBatchWithConcurrencyLimit(pagePromises, MAX_CONCURRENT_REQUESTS);
+
+  const allData = [...firstPageData, ...remainingData];
+
+  const filteredData = allData.slice(0, allData.findIndex((_, index, arr) => {
+    // Find where we start getting empty results
+    const pageStartIndex = index - (index % PAGE_SIZE);
+    const pageEndIndex = Math.min(pageStartIndex + PAGE_SIZE, arr.length);
+    return pageEndIndex - pageStartIndex < PAGE_SIZE && index === pageStartIndex;
+  }) || allData.length);
+  
+  console.log(`[TADA API] Completed: ${filteredData.length} total records from ${endpoint}`);
+  return filteredData;
 }
 
 // Test different endpoint variations
 export async function discoverTADAEndpoints(): Promise<void> {
   console.log('[TADA Service] Testing various endpoint names...');
+  
+  // Ensure we have an access key
+  await generateAccessKey();
   
   const possibleEndpoints = [
     'Part',
@@ -231,78 +328,81 @@ export async function discoverTADAEndpoints(): Promise<void> {
   }
 }
 
-// Main function to load all data from TADA
+// Main function to load all data from TADA - OPTIMIZED WITH PARALLEL PROCESSING
 export async function loadDataFromTADA(): Promise<TADADataResult> {
-  console.log('[TADA Service] Starting data load from TADA Knowledge Graph...');
+  console.log('[TADA Service] Starting OPTIMIZED parallel data load from TADA Knowledge Graph...');
+  const startTime = Date.now();
   
   try {
-    // Step 1: Fetch Parts
-    console.log('[TADA Service] Step 1: Fetching Parts...');
-    let partsData: TADAPartNode[] = [];
-    try {
-      partsData = await fetchAllPages<TADAPartNode>('Part');
-      console.log(`[TADA Service] Raw parts count: ${partsData.length}`);
-    } catch (error) {
-      console.error('[TADA Service] Failed to fetch Parts, trying alternative endpoints...');
-      
-      // Try alternative endpoints
+    // Generate access key first
+    await generateAccessKey();
+    
+    // Create all fetch promises upfront
+    const fetchPromises = {
+      parts: fetchAllPagesParallel<TADAPartNode>('Part').catch(() => []),
+      supplierAnalysis: fetchAllPagesParallel<TADASupplierAnalysis>('BCXSupplierAnalysis'),
+      demand: fetchAllPagesParallel<TADASupplierPartDemand>('BCXSupplierPartDemand'),
+      suppliers: fetchAllPagesParallel<TADASupplier>('Supplier').catch(() => []),
+      sourceOfSupply: fetchAllPagesParallel<TADASourceOfSupply>('FactorySourceOfSupplyGeneral').catch(() => []),
+      partFamily: fetchAllPagesParallel<TADAPartFamily>('PartToPartFamily')
+    };
+    
+    // Execute all fetches in parallel
+    console.log('[TADA Service] Fetching all data in parallel...');
+    const [
+      partsData,
+      supplierAnalysisData,
+      demandData,
+      suppliersData,
+      sourceOfSupplyData,
+      partFamilyData
+    ] = await Promise.all([
+      fetchPromises.parts,
+      fetchPromises.supplierAnalysis,
+      fetchPromises.demand,
+      fetchPromises.suppliers,
+      fetchPromises.sourceOfSupply,
+      fetchPromises.partFamily
+    ]);
+    
+    console.log(`[TADA Service] All data fetched in ${(Date.now() - startTime) / 1000}s`);
+    console.log(`[TADA Service] Raw counts - Parts: ${partsData.length}, Analysis: ${supplierAnalysisData.length}, Demand: ${demandData.length}, Suppliers: ${suppliersData.length}`);
+    
+    // Process parts with fallback endpoints if needed
+    let validParts = partsData.filter(p => p.PartID && p.PartName);
+    if (validParts.length === 0 && partsData.length === 0) {
+      console.log('[TADA Service] No parts from primary endpoint, trying alternatives...');
       const alternativeEndpoints = ['Parts', 'PartNode', 'BCXPart'];
       for (const endpoint of alternativeEndpoints) {
         try {
-          partsData = await fetchAllPages<TADAPartNode>(endpoint);
-          console.log(`[TADA Service] Successfully fetched from ${endpoint}: ${partsData.length} parts`);
-          break;
+          const altParts = await fetchAllPagesParallel<TADAPartNode>(endpoint);
+          validParts = altParts.filter(p => p.PartID && p.PartName);
+          if (validParts.length > 0) {
+            console.log(`[TADA Service] Got ${validParts.length} valid parts from ${endpoint}`);
+            break;
+          }
         } catch (e) {
           console.log(`[TADA Service] ${endpoint} also failed`);
         }
       }
-      
-      if (partsData.length === 0) {
-        console.warn('[TADA Service] Could not fetch parts from any endpoint, continuing with empty parts array');
-      }
     }
     
-    // Filter parts with both ID and Name
-    const validParts = partsData.filter(p => p.PartID && p.PartName);
-    console.log(`[TADA Service] Valid parts (with ID and Name): ${validParts.length}`);
-    
-    // Step 2: Fetch Part Pricing
-    console.log('[TADA Service] Step 2: Fetching Part Pricing...');
-    const supplierAnalysisData = await fetchAllPages<TADASupplierAnalysis>('BCXSupplierAnalysis');
-    console.log(`[TADA Service] Raw supplier analysis records: ${supplierAnalysisData.length}`);
-    
-    // Debug: Show available Analysis IDs
-    const analysisIds = new Set(supplierAnalysisData.map(sa => sa.AnalysisID));
-    console.log('[TADA Service] Available Analysis IDs:', Array.from(analysisIds));
-    
-    // Filter ONLY for 1.0 Baseline pricing
+    // Process pricing - filter for baseline
     const baselinePricing = supplierAnalysisData.filter(sa => sa.AnalysisID === '1.0 Baseline');
-    console.log(`[TADA Service] Baseline (1.0 Baseline) pricing records: ${baselinePricing.length}`);
+    console.log(`[TADA Service] Baseline pricing records: ${baselinePricing.length}`);
     
-    // Create price map with correct field name
     const priceMap = new Map<string, number>();
     baselinePricing.forEach(bp => {
       if (bp.PartID && bp.SalesPricePerUnit) {
         priceMap.set(bp.PartID, bp.SalesPricePerUnit);
       }
     });
-    console.log(`[TADA Service] Unique parts with baseline pricing: ${priceMap.size}`);
     
-    // Declare annualDemandMap at function level so it's accessible later
-    let annualDemandMap = new Map<string, number>();
+    // Process demand - filter for baseline and aggregate
+    const baselineDemand = demandData.filter(d => d.AnalysisID === '1.0 Baseline');
+    console.log(`[TADA Service] Baseline demand records: ${baselineDemand.length}`);
     
-    // Step 3: Fetch and Aggregate Demand
-    console.log('[TADA Service] Step 3: Fetching Demand Data...');
-    const demandData = await fetchAllPages<TADASupplierPartDemand>('BCXSupplierPartDemand');
-    console.log(`[TADA Service] Raw demand records: ${demandData.length}`);
-    
-    // Filter ONLY for 1.0 Baseline demand - be very explicit
-    const baselineDemand = demandData.filter(d => 
-      d.AnalysisID === '1.0 Baseline'
-    );
-    console.log(`[TADA Service] Baseline (1.0 Baseline) demand records: ${baselineDemand.length}`);
-    
-    // Aggregate demand by part - simply sum all daily demand values
+    const annualDemandMap = new Map<string, number>();
     baselineDemand.forEach(d => {
       if (d.PartID && d.SupplierDemand) {
         const currentDemand = annualDemandMap.get(d.PartID) || 0;
@@ -310,94 +410,45 @@ export async function loadDataFromTADA(): Promise<TADADataResult> {
       }
     });
     
-    console.log(`[TADA Service] Parts with baseline demand data: ${annualDemandMap.size}`);
+    console.log(`[TADA Service] Parts with demand data: ${annualDemandMap.size}`);
     console.log(`[TADA Service] NOTE: Applying 5% adjustment to all demand values for demo`);
     
-    // Show sample aggregated demands for debugging - SHOW 5% ADJUSTED VALUES
-    let sampleCount = 0;
-    annualDemandMap.forEach((demand, partId) => {
-      if (sampleCount < 5) {
-        const adjustedDemand = Math.round(demand * 0.05);
-        console.log(`[TADA Service] Part ${partId} total annual demand: ${adjustedDemand}`);
-        sampleCount++;
-      }
-    });
-    
-    // Step 4: Fetch Suppliers
-    console.log('[TADA Service] Step 4: Fetching Suppliers...');
-    let suppliersData: TADASupplier[] = [];
-    try {
-      suppliersData = await fetchAllPages<TADASupplier>('Supplier');
-      console.log(`[TADA Service] Raw suppliers from Supplier endpoint: ${suppliersData.length}`);
-    } catch (error) {
-      console.warn('[TADA Service] Failed to fetch from Supplier endpoint, trying alternatives...');
-      
-      // Try alternative endpoints
+    // Process suppliers with fallbacks
+    let processedSuppliers = suppliersData;
+    if (processedSuppliers.length === 0) {
+      console.log('[TADA Service] No suppliers from primary endpoint, trying alternatives...');
       const alternativeSupplierEndpoints = ['BCXSupplier', 'Suppliers', 'SupplierMaster'];
       for (const endpoint of alternativeSupplierEndpoints) {
         try {
-          suppliersData = await fetchAllPages<TADASupplier>(endpoint);
-          console.log(`[TADA Service] Successfully fetched from ${endpoint}: ${suppliersData.length} suppliers`);
-          break;
+          processedSuppliers = await fetchAllPagesParallel<TADASupplier>(endpoint);
+          if (processedSuppliers.length > 0) {
+            console.log(`[TADA Service] Got ${processedSuppliers.length} suppliers from ${endpoint}`);
+            break;
+          }
         } catch (e) {
           console.log(`[TADA Service] ${endpoint} also failed`);
         }
       }
     }
     
-    // If still no suppliers, try to extract from BCXSupplierAnalysis
-    if (suppliersData.length === 0) {
-      console.log('[TADA Service] Attempting to extract suppliers from BCXSupplierAnalysis...');
+    // If still no suppliers, extract from analysis data
+    if (processedSuppliers.length === 0) {
+      console.log('[TADA Service] Extracting suppliers from analysis data...');
       const uniqueSupplierIds = new Set<string>();
-      supplierAnalysisData.forEach(sa => {
-        if (sa.SupplierID) {
-          uniqueSupplierIds.add(sa.SupplierID);
+      [...supplierAnalysisData, ...demandData].forEach(item => {
+        if ('SupplierID' in item && item.SupplierID) {
+          uniqueSupplierIds.add(item.SupplierID);
         }
       });
       
-      // Also check demand data for supplier IDs
-      demandData.forEach(d => {
-        if (d.SupplierID) {
-          uniqueSupplierIds.add(d.SupplierID);
-        }
-      });
-      
-      suppliersData = Array.from(uniqueSupplierIds).map(id => ({
+      processedSuppliers = Array.from(uniqueSupplierIds).map(id => ({
         SupplierID: id,
         SupplierName: `Supplier ${id}`,
         SupplierCountry: 'Unknown',
         SupplierCity: 'Unknown',
         SupplierDescription: 'Extracted from analysis data'
       }));
-      console.log(`[TADA Service] Created ${suppliersData.length} suppliers from analysis data`);
     }
-    
-    // Step 5: Fetch Part-Supplier Relationships
-    console.log('[TADA Service] Step 5: Fetching Part-Supplier Relationships...');
-    let sourceOfSupplyData: TADASourceOfSupply[] = [];
-    try {
-      sourceOfSupplyData = await fetchAllPages<TADASourceOfSupply>('FactorySourceOfSupplyGeneral');
-      console.log(`[TADA Service] Part-Supplier relationships from FactorySourceOfSupplyGeneral: ${sourceOfSupplyData.length}`);
-    } catch (error) {
-      console.warn('[TADA Service] Failed to fetch from FactorySourceOfSupplyGeneral, trying alternatives...');
-      
-      // Try alternative endpoints
-      const alternativeEndpoints = ['BCXFactoryPartSource', 'PartToSupplier', 'PartSupplier', 'BCXPartSupplier'];
-      for (const endpoint of alternativeEndpoints) {
-        try {
-          sourceOfSupplyData = await fetchAllPages<TADASourceOfSupply>(endpoint);
-          console.log(`[TADA Service] Successfully fetched from ${endpoint}: ${sourceOfSupplyData.length} relationships`);
-          break;
-        } catch (e) {
-          console.log(`[TADA Service] ${endpoint} also failed`);
-        }
-      }
-    }
-    
-    // Step 6: Fetch Part Categories
-    console.log('[TADA Service] Step 6: Fetching Part Categories...');
-    const partFamilyData = await fetchAllPages<TADAPartFamily>('PartToPartFamily');
-    console.log(`[TADA Service] Part-Family mappings: ${partFamilyData.length}`);
     
     // Transform data to application format
     console.log('[TADA Service] Transforming data to application format...');
@@ -406,37 +457,22 @@ export async function loadDataFromTADA(): Promise<TADADataResult> {
     const parts: Part[] = validParts.map((p, index) => {
       const partId = p.PartID;
       const price = priceMap.get(partId) || 0;
-      
-      // Get the 5% adjusted demand
-      const demand = annualDemandMap.get(partId) || 0;
-      
-      if (price === 0 && index < 5) { // Only log first 5 to avoid spam
-        console.warn(`[TADA Service] No price found for part ${partId}`);
-      }
+      const demand = (annualDemandMap.get(partId) || 0) * 0.05; // 5% adjustment
       
       return {
         id: `tada_part_${partId}`,
         partNumber: p.BasePartNumber || partId,
         name: p.PartName || `Part ${partId}`,
         price: price,
-        annualDemand: demand, // This is the 5% adjusted value from annualDemandMap
+        annualDemand: Math.round(demand),
         freightOhdCost: 0.02, // Default 2% freight overhead
       };
     });
-    console.log(`[TADA Service] Transformed parts: ${parts.length}`);
-    console.log(`[TADA Service] Parts with price > 0: ${parts.filter(p => p.price > 0).length}`);
-    console.log(`[TADA Service] Parts with demand > 0: ${parts.filter(p => p.annualDemand > 0).length}`);
     
-    // DEBUG: Show first 5 parts with their demand values
-    console.log('[TADA Service] First 5 parts with adjusted demand:');
-    parts.slice(0, 5).forEach(p => {
-      console.log(`  - ${p.partNumber}: demand = ${p.annualDemand}`);
-    });
-    
-    // Transform Suppliers with actual field names from API
-    const suppliers: Supplier[] = suppliersData
+    // Transform Suppliers
+    const suppliers: Supplier[] = processedSuppliers
       .filter(s => s.SupplierID)
-      .map((s, index) => {
+      .map((s) => {
         const supplierId = s.SupplierID;
         const supplierName = s.SupplierName || `Supplier ${supplierId}`;
         
@@ -467,33 +503,21 @@ export async function loadDataFromTADA(): Promise<TADADataResult> {
           longitude,
         };
       });
-    console.log(`[TADA Service] Transformed suppliers: ${suppliers.length}`);
     
     // Transform Part-Supplier Associations
     const partSupplierAssociations: PartSupplierAssociation[] = [];
-    const validAssociations = sourceOfSupplyData.filter(sos => 
-      sos.PartID && sos.SupplierID
+    const baselineAssociations = sourceOfSupplyData.filter(sos => 
+      sos.PartID && sos.SupplierID && sos.AnalysisID === '1.0 Baseline'
     );
     
-    // Filter for baseline associations only if AnalysisID field exists
-    const baselineAssociations = validAssociations.filter(va => 
-      va.AnalysisID === '1.0 Baseline'
-    );
-    
-    // Use baseline if available, otherwise use all associations
-    const associationsToUse = baselineAssociations.length > 0 ? baselineAssociations : validAssociations;
-    
-    console.log(`[TADA Service] Using ${baselineAssociations.length > 0 ? 'baseline' : 'all'} associations: ${associationsToUse.length} records`);
+    const associationsToUse = baselineAssociations.length > 0 ? baselineAssociations : 
+      sourceOfSupplyData.filter(sos => sos.PartID && sos.SupplierID);
     
     associationsToUse.forEach((sos, index) => {
       const partId = `tada_part_${sos.PartID}`;
       const supplierId = `tada_supplier_${sos.SupplierID}`;
       
-      // Check if part and supplier exist
-      const partExists = parts.some(p => p.id === partId);
-      const supplierExists = suppliers.some(s => s.id === supplierId);
-      
-      if (partExists && supplierExists) {
+      if (parts.some(p => p.id === partId) && suppliers.some(s => s.id === supplierId)) {
         partSupplierAssociations.push({
           id: `tada_psa_${index}`,
           partId: partId,
@@ -501,38 +525,30 @@ export async function loadDataFromTADA(): Promise<TADADataResult> {
         });
       }
     });
-    console.log(`[TADA Service] Valid part-supplier associations: ${partSupplierAssociations.length}`);
     
     // Transform Part Category Mappings
     const partCategoryMappings: PartCategoryMapping[] = [];
-    const validFamilies = partFamilyData.filter(pf => 
-      pf.PartID && pf.PartFamily
-    );
-    
-    validFamilies.forEach((pf, index) => {
-      const partId = `tada_part_${pf.PartID}`;
-      
-      // Check if part exists
-      const partExists = parts.some(p => p.id === partId);
-      
-      if (partExists) {
-        partCategoryMappings.push({
-          id: `tada_pcm_${index}`,
-          partId: partId,
-          categoryName: pf.PartFamily,
-        });
-      }
-    });
-    console.log(`[TADA Service] Valid part-category mappings: ${partCategoryMappings.length}`);
+    partFamilyData
+      .filter(pf => pf.PartID && pf.PartFamily)
+      .forEach((pf, index) => {
+        const partId = `tada_part_${pf.PartID}`;
+        
+        if (parts.some(p => p.id === partId)) {
+          partCategoryMappings.push({
+            id: `tada_pcm_${index}`,
+            partId: partId,
+            categoryName: pf.PartFamily,
+          });
+        }
+      });
     
     // Summary
-    console.log('[TADA Service] Data load complete!');
-    const totalAdjustedDemand = parts.reduce((sum, p) => sum + p.annualDemand, 0);
+    const totalTime = (Date.now() - startTime) / 1000;
+    console.log(`[TADA Service] Data load complete in ${totalTime}s!`);
     console.log(`[TADA Service] Summary:
       - Parts: ${parts.length}
       - Parts with price: ${parts.filter(p => p.price > 0).length}
       - Parts with demand: ${parts.filter(p => p.annualDemand > 0).length}
-      - Total adjusted annual demand: ${totalAdjustedDemand.toLocaleString()} units
       - Suppliers: ${suppliers.length}
       - Part-Supplier Associations: ${partSupplierAssociations.length}
       - Part-Category Mappings: ${partCategoryMappings.length}
@@ -555,6 +571,10 @@ export async function loadDataFromTADA(): Promise<TADADataResult> {
 export async function testTADAConnection(): Promise<boolean> {
   console.log('[TADA Service] Testing connection...');
   try {
+    // First try to generate an access key
+    await generateAccessKey();
+    
+    // Then test with a simple API call
     const testData = await fetchTADAData<TADAPartNode>('Part', 1, false);
     console.log('[TADA Service] Connection test successful!');
     return true;
@@ -562,4 +582,11 @@ export async function testTADAConnection(): Promise<boolean> {
     console.error('[TADA Service] Connection test failed:', error);
     return false;
   }
+}
+
+// Function to manually refresh access key
+export async function refreshAccessKey(): Promise<string> {
+  console.log('[TADA Service] Manually refreshing access key...');
+  CURRENT_ACCESS_KEY = null; // Clear current key
+  return await generateAccessKey();
 }
