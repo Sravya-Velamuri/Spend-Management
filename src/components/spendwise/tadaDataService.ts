@@ -4,7 +4,7 @@ import type { Part, Supplier, PartCategoryMapping, PartSupplierAssociation } fro
 // TADA API Configuration
 const TADA_BASE_URL = 'https://beta.tadanow.com/API/UCC';
 const ACCESS_KEY = '1J6LLsxGsGrSsuSogoHyFZ-b8QaAPkn6h1BffZZjZmdFBC2cqT90vBK7L3NUZ8m5FZgA_MsjMNGu-7v44n_ZZgQGSxkbRmulAnzRsdWB1LxnauqUfI6XT1PqlJoRM_kw';
-const PAGE_SIZE = 5000; // Increased from 500 to 5000 for faster loading
+const PAGE_SIZE = 25000; // Increased from 500 to 5000 for faster loading
 
 // Interfaces for TADA API responses
 interface TADAPartNode {
