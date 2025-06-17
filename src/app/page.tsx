@@ -1,4 +1,3 @@
-
 "use client"; // This file is a client component in Next.js 13+ with the app directory enabled.
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -13,6 +12,8 @@ import GenerateDataDialog from "@/components/spendwise/generate-data-dialog";
 import UploadCsvDialog from "@/components/spendwise/upload-csv-dialog";
 import AppInfoDialog from "@/components/spendwise/AppInfoDialog";
 import SpendWiseBot from "@/components/spendwise/spendwise-bot";
+import { loadDataFromTADA, testTADAConnection } from '@/components/spendwise/tadaDataService';
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -85,6 +86,7 @@ export default function SpendWiseCentralPage() {
   const [isExcelUploadDialogOpen, setIsExcelUploadDialogOpen] = useState(false);
   const [isUploadingExcel, setIsUploadingExcel] = useState(false);
   const [isLoadingSampleData, setIsLoadingSampleData] = useState(false);
+  const [isLoadingFromTADA, setIsLoadingFromTADA] = useState(false);
 
   const [tariffRateMultiplierPercent, setTariffRateMultiplierPercent] = useState(100);
   const [totalLogisticsCostPercent, setTotalLogisticsCostPercent] = useState(100);
@@ -170,7 +172,7 @@ export default function SpendWiseCentralPage() {
         case '>': return '&gt;';
         case '&': return '&amp;';
         case '"': return '&quot;';
-        case "'": return '&apos;';
+        case "'": return '&' + 'apos;';  // Split to avoid parsing issues
         default: return c;
       }
     });
@@ -809,6 +811,44 @@ export default function SpendWiseCentralPage() {
     }
   }, [toast, handleProcessExcelWorkbook]);
 
+  const handleLoadFromTADA = useCallback(async () => {
+    setIsLoadingFromTADA(true);
+    try {
+      console.log('[App] Starting TADA data load...');
+      
+      // Test connection first
+      const isConnected = await testTADAConnection();
+      if (!isConnected) {
+        throw new Error('Unable to connect to TADA');
+      }
+      
+      // Load data
+      const tadaData = await loadDataFromTADA();
+      
+      // Set data in application
+      setParts(tadaData.parts);
+      setSuppliers(tadaData.suppliers);
+      setPartCategoryMappings(tadaData.partCategoryMappings);
+      setPartSupplierAssociations(tadaData.partSupplierAssociations);
+      resetValidationStates();
+      
+      toast({ 
+        title: "TADA Data Loaded", 
+        description: `Loaded ${tadaData.parts.length} parts, ${tadaData.suppliers.length} suppliers` 
+      });
+      
+    } catch (error) {
+      console.error('[App] Error loading from TADA:', error);
+      toast({ 
+        variant: "destructive", 
+        title: "TADA Load Error", 
+        description: error instanceof Error ? error.message : "Failed to load data from TADA" 
+      });
+    } finally {
+      setIsLoadingFromTADA(false);
+    }
+  }, [setParts, setSuppliers, setPartCategoryMappings, setPartSupplierAssociations, resetValidationStates, toast]);
+
 
   const handleClearAllData = useCallback(() => {
     setParts([]);
@@ -1205,6 +1245,27 @@ export default function SpendWiseCentralPage() {
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Load Sample Data</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleLoadFromTADA}
+                    disabled={isLoadingFromTADA || isUploadingExcel}
+                    aria-label="Load from TADA"
+                    className="bg-purple-50 hover:bg-purple-100 dark:bg-purple-900 dark:hover:bg-purple-800 border-purple-200 dark:border-purple-700"
+                  >
+                    {isLoadingFromTADA ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-purple-600 dark:text-purple-400" />
+                    ) : (
+                      <Globe className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Load from TADA Knowledge Graph</p>
                 </TooltipContent>
               </Tooltip>
 
