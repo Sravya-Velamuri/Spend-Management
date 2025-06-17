@@ -494,11 +494,16 @@ export default function WhatIfAnalysisTab({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Column 1: What-if Controls */}
         <div className="md:col-span-1 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center"><Settings2 className="mr-2 h-5 w-5 text-primary"/>What-if Controls</CardTitle>
-              <CardDescription className="text-xs">Adjust parameters to model different scenarios.</CardDescription>
-            </CardHeader>
+        <Card className="shadow-lg">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-xl flex items-center">
+                        <Settings2 className="mr-2 h-6 w-6 text-primary"/>
+                        What-if Controls
+                      </CardTitle>
+                      <CardDescription className="text-sm">
+                        Adjust parameters to model different scenarios
+                      </CardDescription>
+                    </CardHeader>
             <CardContent className="space-y-3">
                 <div className="space-y-2 p-3 border rounded-md">
                     <Label htmlFor="analysisHomeCountrySelect" className="text-sm font-medium flex items-center"><MapPin className="h-4 w-4 mr-1.5"/>Scenario Home Country</Label>
@@ -535,28 +540,60 @@ export default function WhatIfAnalysisTab({
                     </div>
                 </div>
 
-                <div className="space-y-2 p-4 border rounded-lg bg-muted/20">
-                <h4 className="font-medium text-sm flex items-center"><Palette className="h-4 w-4 mr-1.5"/>Category Specific Cost Adjustment</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end pt-2">
-                    <div className="sm:col-span-5">
-                    <Label htmlFor="selectCategoryCost" className="text-xs">Category</Label>
-                    <Select value={selectedCategoryForAdjustment} onValueChange={setSelectedCategoryForAdjustment}>
-                        <SelectTrigger id="selectCategoryCost" className="h-9 text-xs"><SelectValue placeholder="Select Category" /></SelectTrigger>
-                        <SelectContent>
-                        {uniqueCategories.map(cat => <SelectItem key={cat} value={cat} className="text-xs">{cat}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+                <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
+                <h4 className="font-semibold text-base flex items-center mb-3">
+                    <Palette className="h-5 w-5 mr-2 text-purple-500"/>
+                    Category Specific Cost Adjustment
+                </h4>
+                <div className="space-y-4">
+                    <div>
+                        <Label htmlFor="selectCategoryCost" className="text-sm font-medium mb-2 block">Select Category</Label>
+                        <Select value={selectedCategoryForAdjustment} onValueChange={setSelectedCategoryForAdjustment}>
+                            <SelectTrigger id="selectCategoryCost" className="h-10 text-sm">
+                                <SelectValue placeholder="Choose a category..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {uniqueCategories.map(cat => <SelectItem key={cat} value={cat} className="text-sm">{cat}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                     </div>
-                    <div className="sm:col-span-5">
-                    <Label htmlFor="categoryCostPercentSlider" className="text-xs">Cost Adj. (%)</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                            <Slider id="categoryCostPercentSlider" min={-100} max={100} step={1} value={[categoryCostAdjustmentValue]} onValueChange={(val) => setCategoryCostAdjustmentValue(val[0])} className="flex-grow" />
-                            <Input type="number" value={categoryCostAdjustmentValue} onChange={(e)=> setCategoryCostAdjustmentValue(parseInt(e.target.value))} className="w-20 h-8 text-xs text-right"/>
-                            <span className="text-xs w-5">%</span>
+                    
+                    <div className="space-y-2">
+                        <Label htmlFor="categoryCostPercentSlider" className="text-sm font-medium">Cost Adjustment (%)</Label>
+                        <div className="flex items-center gap-3">
+                            <Slider 
+                                id="categoryCostPercentSlider" 
+                                min={-100} 
+                                max={100} 
+                                step={1} 
+                                value={[categoryCostAdjustmentValue]} 
+                                onValueChange={(val) => setCategoryCostAdjustmentValue(val[0])} 
+                                className="flex-grow h-6 what-if-slider"
+                            />
+                            <div className="flex items-center gap-1 min-w-[80px]">
+                                <Input 
+                                    type="number" 
+                                    value={categoryCostAdjustmentValue} 
+                                    onChange={(e) => setCategoryCostAdjustmentValue(parseInt(e.target.value) || 0)} 
+                                    className="w-16 h-9 text-sm text-right font-medium"
+                                />
+                                <span className="text-sm font-medium">%</span>
+                            </div>
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground px-1">
+                            <span>-100%</span>
+                            <span>0%</span>
+                            <span>+100%</span>
+                        </div>
                     </div>
-                    </div>
-                    <Button onClick={handleAddCategoryAdjustment} size="sm" className="h-9 text-xs sm:col-span-2" disabled={!selectedCategoryForAdjustment}>
-                    <PlusCircle className="mr-1 h-4 w-4" /> Add
+                    
+                    <Button 
+                        onClick={handleAddCategoryAdjustment} 
+                        size="sm" 
+                        className="w-full h-10 text-sm font-medium" 
+                        disabled={!selectedCategoryForAdjustment}
+                    >
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Category Adjustment
                     </Button>
                 </div>
                 {activeCategoryAdjustments.length > 0 && (

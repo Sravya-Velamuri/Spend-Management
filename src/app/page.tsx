@@ -22,7 +22,7 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "@/context/theme-provider";
 import { useToast } from "@/hooks/use-toast";
-import { Package, Building, ArrowRightLeft, FolderTree, Sun, Moon, Sparkles, Loader2, Briefcase, Users, DollarSignIcon, Globe, Shield, Lightbulb, MessageCircle, Wand2, FileX2, ArrowUpToLine, ArrowDownToLine, FileSpreadsheet, HelpCircle, Home, Info, CheckCircle, ListChecks, Search, ExternalLink, AlertTriangle, BarChart3, FileText } from "lucide-react";
+import { Package, Building, ArrowRightLeft, FolderTree, Sun, Moon, Sparkles, Loader2, Briefcase, Users, DollarSignIcon, Globe, Shield, Lightbulb, MessageCircle, Wand2, FileX2, ArrowUpToLine, ArrowDownToLine, FileSpreadsheet, HelpCircle, Home, Info, CheckCircle, ListChecks, Search, ExternalLink, AlertTriangle, BarChart3, FileText, Maximize2, Minimize2 } from "lucide-react";
 import type { Part, Supplier, PartCategoryMapping, PartSupplierAssociation } from '@/types/spendwise';
 import { generateSpendData } from '@/ai/flows/generate-spend-data-flow';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -59,6 +59,7 @@ const SUMMARY_STATS_HEIGHT_PX = 60;
 const TABSLIST_STICKY_TOP_PX = HEADER_HEIGHT_PX + SUMMARY_STATS_HEIGHT_PX;
 
 
+
 type TabValue = "update-parts" | "update-suppliers" | "part-supplier-mapping" | "upload-part-category" | "validate-spend-network" | "what-if-analysis" | "review-summary";
 
 export default function SpendWiseCentralPage() {
@@ -74,6 +75,7 @@ export default function SpendWiseCentralPage() {
   const [isGeneratingData, setIsGeneratingData] = useState(false);
   const [isAppInfoDialogOpen, setIsAppInfoDialogOpen] = useState(false);
   const [isReleaseNotesDialogOpen, setIsReleaseNotesDialogOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const [isExcelUploadDialogOpen, setIsExcelUploadDialogOpen] = useState(false);
   const [isUploadingExcel, setIsUploadingExcel] = useState(false);
@@ -155,20 +157,17 @@ export default function SpendWiseCentralPage() {
     return () => clearInterval(intervalId);
   }, []);
 
-
   const escapeXml = useCallback((unsafe: string | number): string => {
-    const str = String(unsafe);
-    return str.replace(/[<>&"']/g, (c) => {
-      switch (c) {
-        case '<': return '<';
-        case '>': return '>';
-        case '&': return '&';
-        case '"': return '"';
-        case "'": return '&' + 'apos;';  // Split to avoid parsing issues
-        default: return c;
-      }
-    });
-  }, []);
+      if (unsafe === null || unsafe === undefined) return '';
+      const str = String(unsafe);
+      // First escape & then other characters to avoid double-escaping
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    }, []);
 
   const resetValidationStates = useCallback(() => {
     setValidationPerformed(false);
@@ -193,16 +192,37 @@ export default function SpendWiseCentralPage() {
   }, []);
 
   const parseAndSetXmlData = useCallback((xmlString: string, filename: string) => {
-    try {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlString, "application/xml");
+      try {
+        // Clean up common XML issues before parsing
+        const cleanedXml = xmlString
+          .replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, '&') // Fix unescaped &
+          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''); // Remove control characters
 
-      const errorNode = xmlDoc.querySelector("parsererror");
-      if (errorNode) {
-        console.error("XML Parsing Error:", errorNode.textContent);
-        toast({ variant: "destructive", title: "Error Parsing XML", description: "The selected file could not be parsed." });
-        return;
-      }
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(cleanedXml, "application/xml");
+
+        const errorNode = xmlDoc.querySelector("parsererror");
+        if (errorNode) {
+          console.error("XML Parsing Error:", errorNode.textContent);
+          toast({ 
+            variant: "destructive", 
+            title: "Error Parsing XML", 
+            description: "The XML file is corrupted. Please clear your data and start fresh.",
+            action: (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  localStorage.clear();
+                  window.location.reload();
+                }}
+              >
+                Clear & Reload
+              </Button>
+            )
+          });
+          return;
+        }
 
       const newParts: Part[] = [];
       xmlDoc.querySelectorAll("Parts Part").forEach(p => {
@@ -443,6 +463,37 @@ export default function SpendWiseCentralPage() {
       setIsGeneratingData(false);
     }
   };
+
+  const handleToggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+      }).catch((err) => {
+        console.error("Error attempting to enable fullscreen:", err);
+        toast({ 
+          variant: "destructive", 
+          title: "Fullscreen Error", 
+          description: "Could not enter fullscreen mode." 
+        });
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+      }).catch((err) => {
+        console.error("Error attempting to exit fullscreen:", err);
+      });
+    }
+  }, [toast]);
+  
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   const handleAddPart = useCallback(() => {
     const newPartId = `p${Date.now()}_manual`;
@@ -1086,6 +1137,19 @@ export default function SpendWiseCentralPage() {
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent><p>Release Notes</p></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      onClick={handleToggleFullscreen} 
+                      aria-label={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                    >
+                        {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>{isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}</p></TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
