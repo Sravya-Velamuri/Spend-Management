@@ -9,8 +9,8 @@ import UploadPartCategoryTab from "@/components/spendwise/upload-part-category";
 import WhatIfAnalysisTab from "@/components/spendwise/what-if-analysis-tab";
 import ReviewSummaryTab from "@/components/spendwise/review-summary-tab";
 import GenerateDataDialog from "@/components/spendwise/generate-data-dialog";
-import UploadCsvDialog from "@/components/spendwise/upload-csv-dialog";
 import AppInfoDialog from "@/components/spendwise/AppInfoDialog";
+import ReleaseNotesDialog from "@/components/spendwise/release-notes-dialog";
 import SpendWiseBot from "@/components/spendwise/spendwise-bot";
 import { loadDataFromTADA, testTADAConnection } from '@/components/spendwise/tadaDataService';
 
@@ -59,7 +59,7 @@ const SUMMARY_STATS_HEIGHT_PX = 60;
 const TABSLIST_STICKY_TOP_PX = HEADER_HEIGHT_PX + SUMMARY_STATS_HEIGHT_PX;
 
 
-type TabValue = "update-parts" | "update-suppliers" | "part-supplier-mapping" | "upload-part-category" | "validate-spend-network" | "what-if-analysis" | "review-summary" | "release-notes";
+type TabValue = "update-parts" | "update-suppliers" | "part-supplier-mapping" | "upload-part-category" | "validate-spend-network" | "what-if-analysis" | "review-summary";
 
 export default function SpendWiseCentralPage() {
   const { theme, setTheme } = useTheme();
@@ -73,15 +73,7 @@ export default function SpendWiseCentralPage() {
   const [isGenerateDataDialogOpen, setIsGenerateDataDialogOpen] = useState(false);
   const [isGeneratingData, setIsGeneratingData] = useState(false);
   const [isAppInfoDialogOpen, setIsAppInfoDialogOpen] = useState(false);
-
-  const [isCategoryUploadDialogOpen, setIsCategoryUploadDialogOpen] = useState(false);
-  const [isUploadingCategoryCsv, setIsUploadingCategoryCsv] = useState(false);
-  const [isPartsUploadDialogOpen, setIsPartsUploadDialogOpen] = useState(false);
-  const [isUploadingPartsCsv, setIsUploadingPartsCsv] = useState(false);
-  const [isSuppliersUploadDialogOpen, setIsSuppliersUploadDialogOpen] = useState(false);
-  const [isUploadingSuppliersCsv, setIsUploadingSuppliersCsv] = useState(false);
-  const [isSourceMixUploadDialogOpen, setIsSourceMixUploadDialogOpen] = useState(false);
-  const [isUploadingSourceMixCsv, setIsUploadingSourceMixCsv] = useState(false);
+  const [isReleaseNotesDialogOpen, setIsReleaseNotesDialogOpen] = useState(false);
 
   const [isExcelUploadDialogOpen, setIsExcelUploadDialogOpen] = useState(false);
   const [isUploadingExcel, setIsUploadingExcel] = useState(false);
@@ -168,10 +160,10 @@ export default function SpendWiseCentralPage() {
     const str = String(unsafe);
     return str.replace(/[<>&"']/g, (c) => {
       switch (c) {
-        case '<': return '&lt;';
-        case '>': return '&gt;';
-        case '&': return '&amp;';
-        case '"': return '&quot;';
+        case '<': return '<';
+        case '>': return '>';
+        case '&': return '&';
+        case '"': return '"';
         case "'": return '&' + 'apos;';  // Split to avoid parsing issues
         default: return c;
       }
@@ -493,145 +485,6 @@ export default function SpendWiseCentralPage() {
     resetValidationStates();
     toast({ title: "Supplier Added", description: `"${newSupplier.name}" added successfully.` });
   }, [suppliers, toast, resetValidationStates]);
-
-  const processCsvUpload = useCallback(async (file: File, type: 'category' | 'part' | 'supplier' | 'sourcemix') => {
-    let isProcessingSetter: React.Dispatch<React.SetStateAction<boolean>> | null = null;
-    switch(type) {
-      case 'category': isProcessingSetter = setIsUploadingCategoryCsv; break;
-      case 'part': isProcessingSetter = setIsUploadingPartsCsv; break;
-      case 'supplier': isProcessingSetter = setIsUploadingSuppliersCsv; break;
-      case 'sourcemix': isProcessingSetter = setIsUploadingSourceMixCsv; break;
-    }
-    if (isProcessingSetter) isProcessingSetter(true);
-    resetValidationStates();
-
-    return new Promise<void>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const text = e.target?.result as string;
-          const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
-
-          if (lines.length <= 1) {
-             toast({ variant: "destructive", title: "CSV Error", description: "CSV file is empty or contains only a header." });
-             reject(new Error("CSV empty or header only"));
-             return;
-          }
-
-          const errors: string[] = [];
-          let processedCount = 0;
-          let skippedCount = 0;
-
-          if (type === 'category') {
-            const newMappings: PartCategoryMapping[] = [];
-            for (let i = 1; i < lines.length; i++) {
-              const line = lines[i];
-              const columns = line.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
-              if (columns.length < 2) { errors.push(`Row ${i+1}: Not enough columns.`); skippedCount++; continue; }
-              const partNumber = columns[0];
-              const name = columns[1];
-              if (!partNumber || !name) { errors.push(`Row ${i+1}: Missing PartNumber or Name.`); skippedCount++; continue; }
-              const part = parts.find(p => p.partNumber === partNumber);
-              if (!part) { errors.push(`Row ${i+1}: PartNumber "${partNumber}" not found.`); skippedCount++; continue; }
-
-              newMappings.push({ id: `pcm_csv_${Date.now()}_${i}`, partId: part.id, categoryName: name });
-              processedCount++;
-            }
-            setPartCategoryMappings(prev => [...prev, ...newMappings]);
-          } else if (type === 'part') {
-            const newPartsArr: Part[] = [];
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i];
-                const columns = line.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
-                if (columns.length < 5) { errors.push(`Row ${i+1}: Not enough columns. Expected PartNumber,Name,Price,AnnualDemand,FreightOhdCost(%).`); skippedCount++; continue; }
-                const [partNumber, name, priceStr, annualDemandStr, freightOhdCostStr] = columns;
-                const price = parseFloat(priceStr);
-                const annualDemand = parseInt(annualDemandStr, 10);
-                const freightOhdCost = parseFloat(freightOhdCostStr) / 100;
-                if (!partNumber || !name || isNaN(price) || isNaN(annualDemand) || isNaN(freightOhdCost)) { errors.push(`Row ${i+1}: Invalid data for PartNumber, Name, Price, AnnualDemand, or FreightOhdCost.`); skippedCount++; continue; }
-                if (parts.some(p => p.partNumber === partNumber)) { errors.push(`Row ${i+1}: PartNumber "${partNumber}" already exists. Skipped.`); skippedCount++; continue; }
-                newPartsArr.push({ id: `p_csv_${Date.now()}_${i}`, partNumber, name, price, annualDemand, freightOhdCost });
-                processedCount++;
-            }
-            setParts(prev => [...prev, ...newPartsArr]);
-          } else if (type === 'supplier') {
-            const newSuppliersArr: Supplier[] = [];
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i];
-                const columns = line.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
-                if (columns.length < 8) { errors.push(`Row ${i+1}: Not enough columns. Expected SupplierId, Name, Description, StreetAddress, City, StateOrProvince, PostalCode, Country.`); skippedCount++; continue; }
-                const [supplierId, name, description, streetAddress, city, stateOrProvince, postalCode, country] = columns;
-                if (!supplierId || !name) { errors.push(`Row ${i+1}: Missing SupplierId or Name.`); skippedCount++; continue; }
-                if (suppliers.some(s => s.supplierId === supplierId)) { errors.push(`Row ${i+1}: SupplierId "${supplierId}" already exists. Skipped.`); skippedCount++; continue; }
-                const fullAddress = `${streetAddress}, ${city}, ${stateOrProvince} ${postalCode}, ${country}`;
-                newSuppliersArr.push({ id: `s_csv_${Date.now()}_${i}`, supplierId, name, description, streetAddress, city, stateOrProvince, postalCode, country, address: fullAddress });
-                processedCount++;
-            }
-            setSuppliers(prev => [...prev, ...newSuppliersArr]);
-          } else if (type === 'sourcemix') {
-            const newAssociations: PartSupplierAssociation[] = [];
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i];
-                const columns = line.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
-                if (columns.length < 2) { errors.push(`Row ${i+1}: Not enough columns. Expected PartNumber, SupplierId.`); skippedCount++; continue; }
-                const [partNumber, supplierIdVal] = columns;
-                if (!partNumber || !supplierIdVal) { errors.push(`Row ${i+1}: Missing PartNumber or SupplierId.`); skippedCount++; continue; }
-                const part = parts.find(p => p.partNumber === partNumber);
-                const supplier = suppliers.find(s => s.supplierId === supplierIdVal);
-                if (!part) { errors.push(`Row ${i+1}: PartNumber "${partNumber}" not found.`); skippedCount++; continue; }
-                if (!supplier) { errors.push(`Row ${i+1}: SupplierId "${supplierIdVal}" not found.`); skippedCount++; continue; }
-                if (partSupplierAssociations.some(a => a.partId === part.id && a.supplierId === supplier.id)) { errors.push(`Row ${i+1}: Association between "${partNumber}" and "${supplierIdVal}" already exists. Skipped.`); skippedCount++; continue; }
-                newAssociations.push({ id: `psa_csv_${Date.now()}_${i}`, partId: part.id, supplierId: supplier.id });
-                processedCount++;
-            }
-            setPartSupplierAssociations(prev => [...prev, ...newAssociations]);
-          }
-
-          let description = `${processedCount} items/mappings added.`;
-          if (skippedCount > 0 || errors.length > 0) {
-            description += ` ${skippedCount + errors.filter(e => !e.includes("already exists")).length} rows skipped due to errors or duplicates.`;
-            console.warn(`CSV Upload Errors/Skipped (${type}):`, errors);
-            toast({ variant: "destructive", title: "Upload Partially Successful", description: `${description} Check console for details.`, duration: 7000 });
-          } else {
-            toast({ title: "Upload Successful", description });
-          }
-          resolve();
-        } catch (err) {
-          console.error(`Error processing CSV for ${type}:`, err);
-          toast({ variant: "destructive", title: "Processing Error", description: `Could not process the CSV file for ${type}.` });
-          reject(err);
-        } finally {
-          if (isProcessingSetter) isProcessingSetter(false);
-        }
-      };
-      reader.onerror = () => {
-        toast({ variant: "destructive", title: "File Read Error", description: "Failed to read the file." });
-        if (isProcessingSetter) isProcessingSetter(false);
-        reject(new Error("File read error"));
-      };
-      reader.readAsText(file);
-    });
-  }, [parts, suppliers, partSupplierAssociations, toast, setPartCategoryMappings, setParts, setSuppliers, setPartSupplierAssociations, resetValidationStates]);
-
-  const handleProcessCategoryCsv = useCallback(async (file: File) => {
-    await processCsvUpload(file, 'category');
-    setIsCategoryUploadDialogOpen(false);
-  }, [processCsvUpload]);
-
-  const handleProcessPartsCsv = useCallback(async (file: File) => {
-    await processCsvUpload(file, 'part');
-    setIsPartsUploadDialogOpen(false);
-  }, [processCsvUpload]);
-
-  const handleProcessSuppliersCsv = useCallback(async (file: File) => {
-    await processCsvUpload(file, 'supplier');
-    setIsSuppliersUploadDialogOpen(false);
-  }, [processCsvUpload]);
-
-  const handleProcessSourceMixCsv = useCallback(async (file: File) => {
-    await processCsvUpload(file, 'sourcemix');
-    setIsSourceMixUploadDialogOpen(false);
-  }, [processCsvUpload]);
 
   const handleProcessExcelWorkbook = useCallback(async (file: File) => {
     setIsUploadingExcel(true);
@@ -1228,6 +1081,14 @@ export default function SpendWiseCentralPage() {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" onClick={() => setIsReleaseNotesDialogOpen(true)} aria-label="Release Notes">
+                        <Sparkles className="h-5 w-5" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Release Notes</p></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <Button
                     variant="outline"
                     size="icon"
@@ -1378,7 +1239,7 @@ export default function SpendWiseCentralPage() {
           </section>
 
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabValue)} className="w-full">
-             <TabsList className={`sticky z-30 bg-background shadow-sm grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 text-xs`} style={{top: `${TABSLIST_STICKY_TOP_PX}px`}}>
+             <TabsList className={`sticky z-30 bg-background shadow-sm grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 text-xs`} style={{top: `${TABSLIST_STICKY_TOP_PX}px`}}>
               <TabsTrigger value="update-parts" className="flex items-center justify-start gap-1 tabs-trigger-active-underline text-xs whitespace-normal h-14">
                 <Package className="h-3.5 w-3.5" /> 1. Add/Update Parts
               </TabsTrigger>
@@ -1400,9 +1261,6 @@ export default function SpendWiseCentralPage() {
                <TabsTrigger value="review-summary" className="flex items-center justify-start gap-1 tabs-trigger-active-underline text-xs whitespace-normal h-14">
                 <BarChart3 className="h-3.5 w-3.5" /> 7. Review Spend
               </TabsTrigger>
-              <TabsTrigger value="release-notes" className="flex items-center justify-start gap-1 tabs-trigger-active-underline text-xs whitespace-normal h-14">
-                <Sparkles className="h-3.5 w-3.5" /> Release Notes
-              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="update-parts" className="mt-4">
@@ -1410,7 +1268,6 @@ export default function SpendWiseCentralPage() {
                     parts={parts}
                     setParts={(value) => { setParts(value); resetValidationStates(); }}
                     onAddPart={handleAddPart}
-                    onOpenUploadDialog={() => setIsPartsUploadDialogOpen(true)}
                     partsWithSpend={partsWithSpend}
                     suppliers={suppliers}
                     partSupplierAssociations={partSupplierAssociations}
@@ -1426,7 +1283,6 @@ export default function SpendWiseCentralPage() {
                 suppliers={suppliers}
                 setSuppliers={(value) => { setSuppliers(value); resetValidationStates(); }}
                 onAddSupplier={handleAddSupplier}
-                onOpenUploadDialog={() => setIsSuppliersUploadDialogOpen(true)}
               />
             </TabsContent>
             <TabsContent value="part-supplier-mapping" className="mt-4">
@@ -1435,7 +1291,6 @@ export default function SpendWiseCentralPage() {
                 suppliers={suppliers}
                 partSupplierAssociations={partSupplierAssociations}
                 setPartSupplierAssociations={(value) => { setPartSupplierAssociations(value); resetValidationStates(); }}
-                onOpenUploadDialog={() => setIsSourceMixUploadDialogOpen(true)}
               />
             </TabsContent>
             <TabsContent value="upload-part-category" className="mt-4">
@@ -1444,7 +1299,6 @@ export default function SpendWiseCentralPage() {
                 partCategoryMappings={partCategoryMappings}
                 spendByCategoryData={spendByCategoryData}
                 partsPerCategoryData={partsPerCategoryData}
-                onOpenUploadDialog={() => setIsCategoryUploadDialogOpen(true)}
                 setPartCategoryMappings={(value) => { setPartCategoryMappings(value); resetValidationStates(); }}
               />
             </TabsContent>
@@ -1666,58 +1520,6 @@ export default function SpendWiseCentralPage() {
                 totalCategories={totalCategories}
               />
             </TabsContent>
-            <TabsContent value="release-notes" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Sparkles className="mr-2 h-5 w-5 text-primary" />
-                    Release Notes - Version 2R25.6.12.1
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="prose prose-sm dark:prose-invert max-w-none">
-                  <p>This release includes several enhancements and new features to improve your spend analysis capabilities.</p>
-                  <h4>Key Changes:</h4>
-                  <ul>
-                    <li><strong>New Tab: "Review Spend" (Tab 7):</strong> Added a dedicated tab for reviewing spend summaries with dynamic filtering capabilities for parts, suppliers, and categories. Charts for spend and demand by various dimensions are included.</li>
-                    <li><strong>New Tab: "Release Notes" (Tab 8):</strong> You are here! This tab will keep you informed about the latest updates.</li>
-                    <li><strong>Enhanced "Validate Spend Network" Tab (Tab 5):</strong>
-                      <ul>
-                        <li>Validation sections are now numbered (A, B, C...).</li>
-                        <li>Added a check for "Single-Source Parts".</li>
-                        <li>Added a check for "Duplicate Parts by Internal ID".</li>
-                        <li>Search functionality added to all validation lists.</li>
-                        <li>"Validate Spend" tab renamed to "Validate Spend Network".</li>
-                        <li>Added a "Run Validation Checks" button directly within this tab.</li>
-                      </ul>
-                    </li>
-                    <li><strong>"What-if Analysis" Tab (Tab 6) Refactor:</strong>
-                      <ul>
-                        <li>Reorganized into a three-column layout for better clarity: Controls, Scenario Management/Description, and Impact Summary.</li>
-                        <li>"Applied What-if Parameters" card moved to the middle column.</li>
-                      </ul>
-                    </li>
-                     <li><strong>"Update Source Mix" Tab (Tab 3) Enhancements:</strong>
-                      <ul>
-                        <li>Added search bars above "Available Parts" and "Available Suppliers" lists.</li>
-                        <li>Removed the "Quick Start" button.</li>
-                        <li>Renamed "Mapped Relationships" column to "Source Network".</li>
-                      </ul>
-                    </li>
-                    <li><strong>Application Information Dialog:</strong> Added an "Info" button in the header to launch a dialog explaining the app's purpose and basic usage.</li>
-                    <li><strong>UI & UX Improvements:</strong>
-                      <ul>
-                        <li>Header layout adjusted to group Home Country and Tariff Multiplier.</li>
-                        <li>"Top 10 Parts by Spend" pie chart removed from the "Update Parts" tab (Tab 1) for a cleaner interface.</li>
-                        <li>Fixed runtime error related to empty value prop in Select.Item component.</li>
-                        <li>Fixed "Label not defined" error by adding the correct import.</li>
-                        <li>Tab titles now use `text-xs`, `whitespace-normal`, `justify-start` and a fixed height for improved readability and consistent two-line wrapping.</li>
-                      </ul>
-                    </li>
-                  </ul>
-                  <p>We hope you find these updates helpful!</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
           </Tabs>
         </main>
         <footer className="fixed bottom-0 left-0 right-0 z-50 flex h-12 items-center justify-between border-t bg-card px-4 py-3 text-xs text-muted-foreground sm:px-6 lg:px-8 shadow-md">
@@ -1734,37 +1536,13 @@ export default function SpendWiseCentralPage() {
           onGenerate={handleGenerateData}
           isGenerating={isGeneratingData}
         />
-        <UploadCsvDialog
-          isOpen={isCategoryUploadDialogOpen}
-          onClose={() => setIsCategoryUploadDialogOpen(false)}
-          onUpload={handleProcessCategoryCsv}
-          uploadType="category"
-          isUploading={isUploadingCategoryCsv}
-        />
-        <UploadCsvDialog
-          isOpen={isPartsUploadDialogOpen}
-          onClose={() => setIsPartsUploadDialogOpen(false)}
-          onUpload={handleProcessPartsCsv}
-          uploadType="part"
-          isUploading={isUploadingPartsCsv}
-        />
-        <UploadCsvDialog
-          isOpen={isSuppliersUploadDialogOpen}
-          onClose={() => setIsSuppliersUploadDialogOpen(false)}
-          onUpload={handleProcessSuppliersCsv}
-          uploadType="supplier"
-          isUploading={isUploadingSuppliersCsv}
-        />
-        <UploadCsvDialog
-          isOpen={isSourceMixUploadDialogOpen}
-          onClose={() => setIsSourceMixUploadDialogOpen(false)}
-          onUpload={handleProcessSourceMixCsv}
-          uploadType="sourcemix"
-          isUploading={isUploadingSourceMixCsv}
-        />
         <AppInfoDialog
             isOpen={isAppInfoDialogOpen}
             onClose={() => setIsAppInfoDialogOpen(false)}
+        />
+        <ReleaseNotesDialog
+            isOpen={isReleaseNotesDialogOpen}
+            onClose={() => setIsReleaseNotesDialogOpen(false)}
         />
 
         <Dialog open={isExcelUploadDialogOpen} onOpenChange={setIsExcelUploadDialogOpen}>
@@ -1864,7 +1642,3 @@ function ValidationSection<T>({
     </section>
   );
 }
-
-
-
-    
