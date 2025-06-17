@@ -12,12 +12,12 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { HelpCircle, Info, Percent, DollarSign, Trash2, PlusCircle, ChevronsUpDown, TrendingUp, Save, Upload, Edit3, Layers, BarChart3, Maximize, Minimize, Filter, PackageSearch, Palette, MapPin, Activity, Settings2, FileJson, UserPlus } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip as RechartsTooltipComponent, Cell } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
 import CreateWorkspaceDialog from './create-workspace-dialog';
+import { HelpCircle, Info, Percent, DollarSign, Trash2, PlusCircle, ChevronsUpDown, TrendingUp, Save, Upload, Edit3, Layers, BarChart3, Maximize, Minimize, Filter, PackageSearch, Palette, MapPin, Activity, Settings2, FileJson, UserPlus, Globe, FolderTree, Package } from "lucide-react";
 
 
 interface WhatIfAnalysisTabProps {
@@ -607,76 +607,138 @@ export default function WhatIfAnalysisTab({
                 )}
                 </div>
 
-                <div className="space-y-2 p-4 border rounded-lg bg-muted/20">
+                <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
                 <h4 className="font-medium text-sm flex items-center"><Activity className="h-4 w-4 mr-1.5"/>Demand Adjustments</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end pt-2">
-                    <div className="sm:col-span-3">
-                    <Label htmlFor="demandAdjustmentTypeSelect" className="text-xs">Type</Label>
+                
+                {/* Type Selection Row */}
+                <div className="space-y-2">
+                    <Label htmlFor="demandAdjustmentTypeSelect" className="text-xs font-medium">Adjustment Type</Label>
                     <Select value={demandAdjustmentType} onValueChange={(val) => setDemandAdjustmentType(val as 'global' | 'category' | 'part')}>
-                        <SelectTrigger id="demandAdjustmentTypeSelect" className="h-9 text-xs">
-                        <SelectValue />
+                        <SelectTrigger id="demandAdjustmentTypeSelect" className="w-full h-9 text-xs">
+                            <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                        <SelectItem value="global" className="text-xs">Global</SelectItem>
-                        <SelectItem value="category" className="text-xs">By Category</SelectItem>
-                        <SelectItem value="part" className="text-xs">By Part</SelectItem>
+                            <SelectItem value="global" className="text-xs">Global (All Parts)</SelectItem>
+                            <SelectItem value="category" className="text-xs">By Category</SelectItem>
+                            <SelectItem value="part" className="text-xs">By Specific Part</SelectItem>
                         </SelectContent>
                     </Select>
-                    </div>
-                    {demandAdjustmentType === 'category' && (
-                    <div className="sm:col-span-3">
-                        <Label htmlFor="selectCategoryForDemand" className="text-xs">Category</Label>
-                        <Select value={selectedCategoryForDemand} onValueChange={setSelectedCategoryForDemand}>
-                        <SelectTrigger id="selectCategoryForDemand" className="h-9 text-xs"><SelectValue placeholder="Select Category" /></SelectTrigger>
-                        <SelectContent>
-                            {uniqueCategories.map(cat => <SelectItem key={cat} value={cat} className="text-xs">{cat}</SelectItem>)}
-                        </SelectContent>
-                        </Select>
-                    </div>
-                    )}
-                    {demandAdjustmentType === 'part' && (
-                    <div className="sm:col-span-3">
-                        <Label htmlFor="selectPartForDemand" className="text-xs">Part</Label>
-                        <Select value={selectedPartForDemand} onValueChange={setSelectedPartForDemand}>
-                        <SelectTrigger id="selectPartForDemand" className="h-9 text-xs"><SelectValue placeholder="Select Part" /></SelectTrigger>
-                        <SelectContent>
-                            {partsForSelect.map(p => <SelectItem key={p.value} value={p.value} className="text-xs">{p.label}</SelectItem>)}
-                        </SelectContent>
-                        </Select>
-                    </div>
-                    )}
-                    <div className={`sm:col-span-${demandAdjustmentType === 'global' ? '7' : '4'}`}>
-                    <Label htmlFor="demandAdjustmentSlider" className="text-xs">Demand Change (%)</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                        <Slider id="demandAdjustmentSlider" min={-100} max={200} step={1} value={[demandAdjustmentValue]} onValueChange={(val) => setDemandAdjustmentValue(val[0])} className="flex-grow" />
-                        <Input type="number" value={demandAdjustmentValue} onChange={(e) => setDemandAdjustmentValue(parseInt(e.target.value))} className="w-20 h-8 text-xs text-right" />
-                        <span className="text-xs w-5">%</span>
-                    </div>
-                    </div>
-                    <Button 
-                        onClick={handleAddDemandAdjustment} 
-                        size="sm" 
-                        className="h-9 text-xs sm:col-span-2 justify-self-end"
-                        disabled={
-                            (demandAdjustmentType === 'category' && !selectedCategoryForDemand) ||
-                            (demandAdjustmentType === 'part' && !selectedPartForDemand)
-                        }
-                    >
-                    <PlusCircle className="mr-1 h-4 w-4" /> Add
-                    </Button>
                 </div>
-                {activeDemandAdjustments.length > 0 && (
-                    <ScrollArea className="mt-2 space-y-1 text-xs max-h-24 border rounded-md p-1.5 bg-background">
-                    {activeDemandAdjustments.map(adj => (
-                        <div key={adj.id} className="flex justify-between items-center p-1 bg-muted/60 rounded text-2xs my-0.5">
-                        <span>
-                            {adj.type === 'global' ? 'Global Demand' : adj.type === 'category' ? `Category: ${adj.targetName}` : `Part: ${adj.targetName}`}
-                            : {adj.adjustmentPercent > 0 ? '+':''}{adj.adjustmentPercent}%
+
+                {/* Conditional Category/Part Selection */}
+                {demandAdjustmentType === 'category' && (
+                    <div className="space-y-2">
+                        <Label htmlFor="selectCategoryForDemand" className="text-xs font-medium">Select Category</Label>
+                        <Select value={selectedCategoryForDemand} onValueChange={setSelectedCategoryForDemand}>
+                            <SelectTrigger id="selectCategoryForDemand" className="w-full h-9 text-xs">
+                                <SelectValue placeholder="Choose a category..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {uniqueCategories.map(cat => <SelectItem key={cat} value={cat} className="text-xs">{cat}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+                
+                {demandAdjustmentType === 'part' && (
+                    <div className="space-y-2">
+                        <Label htmlFor="selectPartForDemand" className="text-xs font-medium">Select Part</Label>
+                        <Select value={selectedPartForDemand} onValueChange={setSelectedPartForDemand}>
+                            <SelectTrigger id="selectPartForDemand" className="w-full h-9 text-xs">
+                                <SelectValue placeholder="Choose a part..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {partsForSelect.map(p => <SelectItem key={p.value} value={p.value} className="text-xs">{p.label}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+
+                {/* Demand Adjustment Slider Row */}
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="demandAdjustmentSlider" className="text-xs font-medium">Demand Change (%)</Label>
+                        <span className="text-xs text-muted-foreground">
+                            {demandAdjustmentValue > 0 ? 'Increase' : demandAdjustmentValue < 0 ? 'Decrease' : 'No Change'}
                         </span>
-                        <Button variant="ghost" size="icon" className="h-5 w-5 hover:bg-destructive/10" onClick={() => handleRemoveDemandAdjustment(adj.id)}><Trash2 className="h-3 w-3 text-destructive"/></Button>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Slider 
+                            id="demandAdjustmentSlider" 
+                            min={-100} 
+                            max={200} 
+                            step={1} 
+                            value={[demandAdjustmentValue]} 
+                            onValueChange={(val) => setDemandAdjustmentValue(val[0])} 
+                            className="flex-grow"
+                        />
+                        <div className="flex items-center gap-1 min-w-[80px]">
+                            <Input 
+                                type="number" 
+                                value={demandAdjustmentValue} 
+                                onChange={(e) => setDemandAdjustmentValue(parseInt(e.target.value) || 0)} 
+                                className="w-16 h-8 text-xs text-right"
+                                min="-100"
+                                max="200"
+                            />
+                            <span className="text-xs">%</span>
                         </div>
-                    ))}
-                    </ScrollArea>
+                    </div>
+                    {/* Visual indicator for scale */}
+                    <div className="flex justify-between text-2xs text-muted-foreground px-1">
+                        <span>-100%</span>
+                        <span>0%</span>
+                        <span>+100%</span>
+                        <span>+200%</span>
+                    </div>
+                </div>
+
+                {/* Add Button Row */}
+                <Button 
+                    onClick={handleAddDemandAdjustment} 
+                    size="sm" 
+                    className="w-full h-9 text-xs"
+                    disabled={
+                        (demandAdjustmentType === 'category' && !selectedCategoryForDemand) ||
+                        (demandAdjustmentType === 'part' && !selectedPartForDemand)
+                    }
+                >
+                    <PlusCircle className="mr-1.5 h-4 w-4" /> 
+                    Add {demandAdjustmentType === 'global' ? 'Global' : demandAdjustmentType === 'category' ? 'Category' : 'Part'} Adjustment
+                </Button>
+
+                {/* Active Adjustments List */}
+                {activeDemandAdjustments.length > 0 && (
+                    <div className="space-y-1">
+                        <Label className="text-xs font-medium text-muted-foreground">Active Adjustments:</Label>
+                        <ScrollArea className="max-h-32 border rounded-md p-2 bg-background">
+                            <div className="space-y-1">
+                                {activeDemandAdjustments.map(adj => (
+                                    <div key={adj.id} className="flex justify-between items-center p-2 bg-muted/60 rounded text-xs hover:bg-muted/80 transition-colors">
+                                        <span className="flex items-center gap-1">
+                                            {adj.type === 'global' && <Globe className="h-3 w-3 text-blue-500" />}
+                                            {adj.type === 'category' && <FolderTree className="h-3 w-3 text-purple-500" />}
+                                            {adj.type === 'part' && <Package className="h-3 w-3 text-green-500" />}
+                                            <span className="font-medium">
+                                                {adj.type === 'global' ? 'Global' : adj.targetName}
+                                            </span>
+                                            <span className={`ml-1 ${adj.adjustmentPercent > 0 ? 'text-green-600' : adj.adjustmentPercent < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                                {adj.adjustmentPercent > 0 ? '+' : ''}{adj.adjustmentPercent}%
+                                            </span>
+                                        </span>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-6 w-6 hover:bg-destructive/10" 
+                                            onClick={() => handleRemoveDemandAdjustment(adj.id)}
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5 text-destructive"/>
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </div>
                 )}
                 </div>
                  <Button 
