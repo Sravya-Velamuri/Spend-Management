@@ -1265,7 +1265,7 @@ export default function SpendWiseCentralPage() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Load from TADA Knowledge Graph</p>
+                  <p>Load from TADA</p>
                 </TooltipContent>
               </Tooltip>
 
