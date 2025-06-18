@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Globe, Mail, MapPin, Home, Building, PlusCircle, Trash2, Loader2 } from "lucide-react";
+import { UserPlus, Globe, Mail, MapPin, Home, Building, PlusCircle, Trash2, Loader2, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '../ui/scroll-area';
 
@@ -22,6 +22,7 @@ interface CreateWorkspaceDialogProps {
   isOpen: boolean;
   onClose: () => void;
   uniqueSupplierCountries: string[];
+  onCreateWorkspace?: (data: any) => void;
 }
 
 interface WorkspaceNameEntry {
@@ -29,7 +30,12 @@ interface WorkspaceNameEntry {
   name: string;
 }
 
-export default function CreateWorkspaceDialog({ isOpen, onClose, uniqueSupplierCountries }: CreateWorkspaceDialogProps) {
+export default function CreateWorkspaceDialog({ 
+  isOpen, 
+  onClose, 
+  uniqueSupplierCountries,
+  onCreateWorkspace
+}: CreateWorkspaceDialogProps) {
   const { toast } = useToast();
   const [step, setStep] = useState(1); // 1: Form, 2: MFA
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,6 +54,33 @@ export default function CreateWorkspaceDialog({ isOpen, onClose, uniqueSupplierC
   const [workspaceNames, setWorkspaceNames] = useState<WorkspaceNameEntry[]>([{ id: `ws_${Date.now()}`, name: '' }]);
   const [mfaCode, setMfaCode] = useState('');
 
+  const inputClassName = "h-9 text-sm border border-slate-300 dark:border-slate-600 bg-background text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-ring focus:border-primary";
+
+  // Real-time email validation
+  const getEmailValidationMessage = () => {
+    if (!email || !domainName) return null;
+    
+    // Check if email format is valid first
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return null; // Don't show domain error if email format is invalid
+    
+    const emailDomain = email.split('@')[1];
+    if (!emailDomain) return null;
+    
+    const cleanEmailDomain = emailDomain.toLowerCase().replace('www.', '');
+    const cleanEnteredDomain = domainName.toLowerCase().trim().replace('www.', '');
+    
+    if (cleanEmailDomain !== cleanEnteredDomain) {
+      return `Email domain (@${emailDomain}) must match the domain name (${domainName})`;
+    }
+    
+    return null;
+  };
+
+  const emailValidationError = getEmailValidationMessage();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isEmailValid = email && emailRegex.test(email) && domainName && !emailValidationError;
+
   const handleAddWorkspaceName = () => {
     setWorkspaceNames([...workspaceNames, { id: `ws_${Date.now()}_${workspaceNames.length}`, name: '' }]);
   };
@@ -64,11 +97,21 @@ export default function CreateWorkspaceDialog({ isOpen, onClose, uniqueSupplierC
 
   const handleSubmitForm = async () => {
     // Basic validation
-    if (!firstName || !lastName || !email || !country || workspaceNames.some(ws => !ws.name.trim())) {
+    if (!firstName || !lastName || !domainName || !email || !country || workspaceNames.some(ws => !ws.name.trim())) {
       toast({
         variant: "destructive",
         title: "Missing Information",
-        description: "Please fill out all required fields (First Name, Last Name, Email, Country, and at least one Workspace Name).",
+        description: "Please fill out all required fields (First Name, Last Name, Domain Name, Email, Country, and at least one Workspace Name).",
+      });
+      return;
+    }
+
+    // Email domain validation
+    if (emailValidationError) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Email Domain",
+        description: emailValidationError,
       });
       return;
     }
@@ -109,8 +152,31 @@ export default function CreateWorkspaceDialog({ isOpen, onClose, uniqueSupplierC
           description: "Your workspace registration has been received. Please check your email for the verification code.",
         });
         
-        // Log success for debugging
-        console.log('Registration successful:', result);
+        // Update the UI by calling the parent's function
+        if (onCreateWorkspace) {
+          workspaceNames.forEach((ws, index) => {
+            if (ws.name.trim()) {
+              const workspaceData = {
+                workspaceName: ws.name.trim(),
+                workspaceDescription: `Workspace created by ${firstName} ${lastName}`,
+                workspaceType: 'custom',
+                firstName,
+                lastName,
+                email,
+                domain: domainName, // Include domain for sharing restrictions
+                department: '',
+                region: country,
+                businessUnit: '',
+                tags: ['new', 'pending-verification']
+              };
+              
+              // Only call for the first workspace to avoid multiple toasts
+              if (index === 0) {
+                onCreateWorkspace(workspaceData);
+              }
+            }
+          });
+        }
         
         // Proceed to MFA step
         setStep(2);
@@ -182,8 +248,6 @@ export default function CreateWorkspaceDialog({ isOpen, onClose, uniqueSupplierC
     onClose();
   };
 
-  const inputClassName = "h-9 text-sm border border-slate-300 dark:border-slate-600 bg-background text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-ring focus:border-primary";
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleCloseDialog(); }}>
       <DialogContent className="sm:max-w-xl border border-slate-300 dark:border-slate-600">
@@ -239,7 +303,7 @@ export default function CreateWorkspaceDialog({ isOpen, onClose, uniqueSupplierC
               
               <div className="space-y-2">
                 <Label htmlFor="domainName" className="flex items-center text-sm font-medium">
-                  <Globe className="h-3.5 w-3.5 mr-1.5"/>Domain Name (e.g., company.com)
+                  <Globe className="h-3.5 w-3.5 mr-1.5"/>Domain Name <span className="text-destructive">*</span>
                 </Label>
                 <Input 
                   id="domainName" 
@@ -249,21 +313,36 @@ export default function CreateWorkspaceDialog({ isOpen, onClose, uniqueSupplierC
                   className={inputClassName}
                   disabled={isSubmitting}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Must match your email domain (e.g., if email is user@company.com, enter company.com)
+                </p>
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="email" className="flex items-center text-sm font-medium">
                   <Mail className="h-3.5 w-3.5 mr-1.5"/>Email <span className="text-destructive">*</span>
                 </Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="you@example.com" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                  className={inputClassName}
-                  disabled={isSubmitting}
-                />
+                <div className="relative">
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="you@yourcompany.com" 
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)} 
+                    className={`${inputClassName} ${emailValidationError ? 'border-destructive focus:ring-destructive' : isEmailValid ? 'border-green-500' : ''} ${isEmailValid ? 'pr-10' : ''}`}
+                    disabled={isSubmitting}
+                  />
+                  {isEmailValid && (
+                    <CheckCircle className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-green-500" />
+                  )}
+                </div>
+                {emailValidationError ? (
+                  <p className="text-xs text-destructive">{emailValidationError}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Your email domain must match the domain name above
+                  </p>
+                )}
               </div>
 
               <fieldset className="border-2 border-slate-300 dark:border-slate-600 rounded-lg p-4 space-y-3 bg-slate-50/50 dark:bg-slate-900/30">
@@ -424,7 +503,7 @@ export default function CreateWorkspaceDialog({ isOpen, onClose, uniqueSupplierC
               type="button" 
               onClick={handleSubmitForm}
               className="min-w-[200px] h-10 text-sm font-medium"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !!emailValidationError || !domainName || !email}
             >
               {isSubmitting ? (
                 <>

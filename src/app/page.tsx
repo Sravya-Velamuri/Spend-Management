@@ -22,7 +22,7 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "@/context/theme-provider";
 import { useToast } from "@/hooks/use-toast";
-import { Package, Building, ArrowRightLeft, FolderTree, Sun, Moon, Sparkles, Loader2, Briefcase, Users, DollarSignIcon, Globe, Shield, Lightbulb, MessageCircle, Wand2, FileX2, ArrowUpToLine, ArrowDownToLine, FileSpreadsheet, HelpCircle, Home, Info, CheckCircle, ListChecks, Search, ExternalLink, AlertTriangle, BarChart3, FileText, Maximize2, Minimize2 } from "lucide-react";
+import { Package, Building, Building2, ArrowRightLeft, FolderTree, Sun, Moon, Sparkles, Loader2, Briefcase, Users, DollarSignIcon, Globe, Shield, Lightbulb, MessageCircle, Wand2, FileX2, ArrowUpToLine, ArrowDownToLine, FileSpreadsheet, HelpCircle, Home, Info, CheckCircle, ListChecks, Search, ExternalLink, AlertTriangle, BarChart3, FileText, Maximize2, Minimize2 } from "lucide-react";
 import type { Part, Supplier, PartCategoryMapping, PartSupplierAssociation } from '@/types/spendwise';
 import { generateSpendData } from '@/ai/flows/generate-spend-data-flow';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -32,6 +32,8 @@ import * as XLSX from 'xlsx';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { getCurrencyConfig, CURRENCY_CONFIG } from '@/lib/currencyConfig';
+import ManageWorkspaceTab from "@/components/spendwise/manage-workspace-tab";
+
 
 
 export interface SpendDataPoint {
@@ -62,7 +64,7 @@ const TABSLIST_STICKY_TOP_PX = HEADER_HEIGHT_PX + SUMMARY_STATS_HEIGHT_PX;
 
 
 
-type TabValue = "update-parts" | "update-suppliers" | "part-supplier-mapping" | "upload-part-category" | "validate-spend-network" | "what-if-analysis" | "review-summary";
+type TabValue = "update-parts" | "update-suppliers" | "part-supplier-mapping" | "upload-part-category" | "validate-spend-network" | "what-if-analysis" | "review-summary" | "manage-workspace";
 
 export default function SpendWiseCentralPage() {
   const { theme, setTheme } = useTheme();
@@ -178,7 +180,7 @@ export default function SpendWiseCentralPage() {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
+        .replace(/'/g, '&' + 'apos;'); // Split to avoid parsing issues
     }, []);
 
   const resetValidationStates = useCallback(() => {
@@ -216,14 +218,14 @@ export default function SpendWiseCentralPage() {
         const errorNode = xmlDoc.querySelector("parsererror");
         if (errorNode) {
           console.error("XML Parsing Error:", errorNode.textContent);
-          toast({ 
-            variant: "destructive", 
-            title: "Error Parsing XML", 
+          toast({
+            variant: "destructive",
+            title: "Error Parsing XML",
             description: "The XML file is corrupted. Please clear your data and start fresh.",
             action: (
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   localStorage.clear();
                   window.location.reload();
@@ -314,7 +316,7 @@ export default function SpendWiseCentralPage() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [parseAndSetXmlData]); 
+  }, [parseAndSetXmlData]);
 
   useEffect(() => {
     let xmlStringGen = '<SpendData>\n';
@@ -482,10 +484,10 @@ export default function SpendWiseCentralPage() {
         setIsFullscreen(true);
       }).catch((err) => {
         console.error("Error attempting to enable fullscreen:", err);
-        toast({ 
-          variant: "destructive", 
-          title: "Fullscreen Error", 
-          description: "Could not enter fullscreen mode." 
+        toast({
+          variant: "destructive",
+          title: "Fullscreen Error",
+          description: "Could not enter fullscreen mode."
         });
       });
     } else {
@@ -496,13 +498,13 @@ export default function SpendWiseCentralPage() {
       });
     }
   }, [toast]);
-  
+
   // Listen for fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
-    
+
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
@@ -622,18 +624,18 @@ export default function SpendWiseCentralPage() {
                  errors.push(`Suppliers Row ${index + 2}: SupplierId "${supplierId}" already exists. Skipped.`); return;
             }
             const fullAddress = [streetAddress, city, stateOrProvince, postalCode, country].filter(Boolean).join(', ');
-            
+
             // Don't set coordinates for new suppliers - let auto-geocoding handle it
-            newSuppliersArr.push({ 
-              id: `s_excel_${Date.now()}_${index}`, 
-              supplierId, 
-              name, 
-              description, 
-              streetAddress, 
-              city, 
-              stateOrProvince, 
-              postalCode, 
-              country, 
+            newSuppliersArr.push({
+              id: `s_excel_${Date.now()}_${index}`,
+              supplierId,
+              name,
+              description,
+              streetAddress,
+              city,
+              stateOrProvince,
+              postalCode,
+              country,
               address: fullAddress,
               latitude: undefined,
               longitude: undefined
@@ -674,33 +676,33 @@ export default function SpendWiseCentralPage() {
         try {
           const partNumber = String(row['PartNumber'] || '').trim();
           const categoryName = String(row['CategoryName'] || '').trim();
-          
-          if (!partNumber || !categoryName) { 
-            errors.push(`Categories Row ${index + 2}: Missing PartNumber or CategoryName`); 
-            return; 
+
+          if (!partNumber || !categoryName) {
+            errors.push(`Categories Row ${index + 2}: Missing PartNumber or CategoryName`);
+            return;
           }
-          
+
           const foundPart = allPartsForCategories.find(p => p.partNumber === partNumber);
-          if (!foundPart) { 
-            errors.push(`Categories Row ${index + 2}: PartNumber "${partNumber}" not found`); 
-            return; 
+          if (!foundPart) {
+            errors.push(`Categories Row ${index + 2}: PartNumber "${partNumber}" not found`);
+            return;
           }
-          
+
           // Check if this mapping already exists
-          const exists = partCategoryMappings.some(m => m.partId === foundPart.id && m.categoryName === categoryName) || 
+          const exists = partCategoryMappings.some(m => m.partId === foundPart.id && m.categoryName === categoryName) ||
                         newCategoryMappings.some(m => m.partId === foundPart.id && m.categoryName === categoryName);
           if (exists) {
             errors.push(`Categories Row ${index + 2}: Mapping between "${partNumber}" and "${categoryName}" already exists. Skipped.`);
             return;
           }
-          
-          newCategoryMappings.push({ 
-            id: `pcm_excel_${Date.now()}_${index}`, 
-            partId: foundPart.id, 
-            categoryName 
+
+          newCategoryMappings.push({
+            id: `pcm_excel_${Date.now()}_${index}`,
+            partId: foundPart.id,
+            categoryName
           });
-        } catch (err) { 
-          errors.push(`Categories Row ${index + 2}: ${err instanceof Error ? err.message : String(err)}`); 
+        } catch (err) {
+          errors.push(`Categories Row ${index + 2}: ${err instanceof Error ? err.message : String(err)}`);
         }
       });
     }
@@ -711,22 +713,22 @@ export default function SpendWiseCentralPage() {
 
 
       const successMessage = `Successfully imported: ${newPartsArr.length} parts, ${newSuppliersArr.length} suppliers, ${newAssociations.length} associations, ${newCategoryMappings.length} category mappings.`;
-      
-      const geocodingMessage = newSuppliersArr.length > 0 && newSuppliersArr.some(s => s.city || s.country) 
-        ? ' Auto-geocoding will process suppliers with addresses.' 
+
+      const geocodingMessage = newSuppliersArr.length > 0 && newSuppliersArr.some(s => s.city || s.country)
+        ? ' Auto-geocoding will process suppliers with addresses.'
         : '';
-      
+
       if (errors.length > 0) {
         console.warn('Excel Upload Errors:', errors.slice(0, 10));
-        toast({ 
-          variant: "destructive", 
-          title: "Partially Successful", 
-          description: `${successMessage}${geocodingMessage} ${errors.length} errors occurred (e.g., duplicates skipped). Check console.`, 
-          duration: 7000 
+        toast({
+          variant: "destructive",
+          title: "Partially Successful",
+          description: `${successMessage}${geocodingMessage} ${errors.length} errors occurred (e.g., duplicates skipped). Check console.`,
+          duration: 7000
         });
       } else {
-        toast({ 
-          title: "Excel Upload Complete", 
+        toast({
+          title: "Excel Upload Complete",
           description: successMessage + geocodingMessage,
           duration: 5000
         });
@@ -760,39 +762,39 @@ export default function SpendWiseCentralPage() {
     setIsLoadingFromTADA(true);
     try {
       console.log('[App] Starting TADA data load...');
-      
+
       // Test connection first
       const isConnected = await testTADAConnection();
       if (!isConnected) {
         throw new Error('Unable to connect to TADA');
       }
-      
+
       // Load data
       const tadaData = await loadDataFromTADA();
-      
+
       // Set data in application
       setParts(tadaData.parts);
       setSuppliers(tadaData.suppliers);
       setPartCategoryMappings(tadaData.partCategoryMappings);
       setPartSupplierAssociations(tadaData.partSupplierAssociations);
       resetValidationStates();
-      
-      const geocodingNote = tadaData.suppliers.filter(s => s.city || s.country).length > 0 
-        ? ' Auto-geocoding will process suppliers with addresses.' 
+
+      const geocodingNote = tadaData.suppliers.filter(s => s.city || s.country).length > 0
+        ? ' Auto-geocoding will process suppliers with addresses.'
         : '';
-      
-      toast({ 
-        title: "TADA Data Loaded", 
+
+      toast({
+        title: "TADA Data Loaded",
         description: `Loaded ${tadaData.parts.length} parts, ${tadaData.suppliers.length} suppliers.${geocodingNote}`,
         duration: 5000
       });
-      
+
     } catch (error) {
       console.error('[App] Error loading from TADA:', error);
-      toast({ 
-        variant: "destructive", 
-        title: "TADA Load Error", 
-        description: error instanceof Error ? error.message : "Failed to load data from TADA" 
+      toast({
+        variant: "destructive",
+        title: "TADA Load Error",
+        description: error instanceof Error ? error.message : "Failed to load data from TADA"
       });
     } finally {
       setIsLoadingFromTADA(false);
@@ -882,7 +884,7 @@ export default function SpendWiseCentralPage() {
       if (value >= 1_000) return `$${(value / 1_000).toFixed(2)}K`;
       return `$${value.toFixed(2)}`;
     }
-    
+
     // Client-side: use full formatting
     const convertedValue = value * appCurrency.rate;
     const formatted = new Intl.NumberFormat(appCurrency.locale, {
@@ -894,14 +896,14 @@ export default function SpendWiseCentralPage() {
     }).format(convertedValue);
     return formatted;
   }, [appCurrency]);
-  
+
     const formatCurrencyWithConversion = useCallback((value: number, decimals = 0) => {
       const convertedValue = value * appCurrency.rate;
-      return new Intl.NumberFormat(appCurrency.locale, { 
-        style: 'currency', 
-        currency: appCurrency.code, 
-        minimumFractionDigits: decimals, 
-        maximumFractionDigits: decimals 
+      return new Intl.NumberFormat(appCurrency.locale, {
+        style: 'currency',
+        currency: appCurrency.code,
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
       }).format(convertedValue);
     }, [appCurrency]);
 
@@ -973,7 +975,7 @@ export default function SpendWiseCentralPage() {
       !partSupplierAssociations.some(assoc => assoc.supplierId === supplier.id)
     );
     setSuppliersWithoutParts(suppliersMissingParts);
-    
+
     // 3. Duplicate Parts by Internal ID
     const partsByIdGroupsInternal = parts.reduce((acc, part) => {
       acc[part.id] = acc[part.id] || [];
@@ -1009,7 +1011,7 @@ export default function SpendWiseCentralPage() {
         .filter(([, items]) => items.length > 1)
         .map(([name, items]) => ({ name, items }))
     );
-    
+
     // 6. Duplicate Suppliers by SupplierId
     const suppliersByIdGroups = suppliers.reduce((acc, supplier) => {
       acc[supplier.supplierId] = acc[supplier.supplierId] || [];
@@ -1064,16 +1066,16 @@ export default function SpendWiseCentralPage() {
 
   const filteredPartsWithoutSuppliers = useMemo(() => {
     if (!searchTermPartsWithoutSuppliers) return partsWithoutSuppliers;
-    return partsWithoutSuppliers.filter(p => 
-        p.name.toLowerCase().includes(searchTermPartsWithoutSuppliers.toLowerCase()) || 
+    return partsWithoutSuppliers.filter(p =>
+        p.name.toLowerCase().includes(searchTermPartsWithoutSuppliers.toLowerCase()) ||
         p.partNumber.toLowerCase().includes(searchTermPartsWithoutSuppliers.toLowerCase())
     );
   }, [partsWithoutSuppliers, searchTermPartsWithoutSuppliers]);
 
   const filteredSuppliersWithoutParts = useMemo(() => {
     if (!searchTermSuppliersWithoutParts) return suppliersWithoutParts;
-    return suppliersWithoutParts.filter(s => 
-        s.name.toLowerCase().includes(searchTermSuppliersWithoutParts.toLowerCase()) || 
+    return suppliersWithoutParts.filter(s =>
+        s.name.toLowerCase().includes(searchTermSuppliersWithoutParts.toLowerCase()) ||
         s.supplierId.toLowerCase().includes(searchTermSuppliersWithoutParts.toLowerCase())
     );
   }, [suppliersWithoutParts, searchTermSuppliersWithoutParts]);
@@ -1082,7 +1084,7 @@ export default function SpendWiseCentralPage() {
     if (!searchTermDuplicatePartsId) return duplicatePartsById;
     return duplicatePartsById.filter(group => group.id.toLowerCase().includes(searchTermDuplicatePartsId.toLowerCase()));
   },[duplicatePartsById, searchTermDuplicatePartsId]);
-  
+
   const filteredDuplicatePartsNumber = useMemo(() => {
     if (!searchTermDuplicatePartsNumber) return duplicatePartsByNumber;
     return duplicatePartsByNumber.filter(group => group.partNumber.toLowerCase().includes(searchTermDuplicatePartsNumber.toLowerCase()));
@@ -1102,10 +1104,10 @@ export default function SpendWiseCentralPage() {
     if (!searchTermDuplicateSuppliersName) return duplicateSuppliersByName;
     return duplicateSuppliersByName.filter(group => group.name.toLowerCase().includes(searchTermDuplicateSuppliersName.toLowerCase()));
   }, [duplicateSuppliersByName, searchTermDuplicateSuppliersName]);
-  
+
   const filteredCaseInsensitiveCategories = useMemo(() => {
     if(!searchTermCategories) return caseInsensitiveDuplicateCategories;
-    return caseInsensitiveDuplicateCategories.filter(group => 
+    return caseInsensitiveDuplicateCategories.filter(group =>
       group.name.toLowerCase().includes(searchTermCategories.toLowerCase()) ||
       group.variations.some(v => v.toLowerCase().includes(searchTermCategories.toLowerCase()))
     );
@@ -1141,7 +1143,7 @@ export default function SpendWiseCentralPage() {
                     <div className="flex items-center space-x-1">
                       <Home className="h-4 w-4 text-muted-foreground" />
                       <Select value={appHomeCountry} onValueChange={(value) => {
-                        setAppHomeCountry(value); 
+                        setAppHomeCountry(value);
                         setAppCurrency(getCurrencyConfig(value));
                         resetValidationStates();
                       }}>
@@ -1218,10 +1220,10 @@ export default function SpendWiseCentralPage() {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      onClick={handleToggleFullscreen} 
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleToggleFullscreen}
                       aria-label={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
                     >
                         {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
@@ -1381,7 +1383,7 @@ export default function SpendWiseCentralPage() {
           </section>
 
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabValue)} className="w-full">
-             <TabsList className={`sticky z-30 bg-background shadow-sm grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 text-xs`} style={{top: `${TABSLIST_STICKY_TOP_PX}px`}}>
+             <TabsList className={`sticky z-30 bg-background shadow-sm grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 text-xs`} style={{top: `${TABSLIST_STICKY_TOP_PX}px`}}>
               <TabsTrigger value="update-parts" className="flex items-center justify-start gap-1 tabs-trigger-active-underline text-xs whitespace-normal h-14">
                 <Package className="h-3.5 w-3.5" /> 1. Add/Update Parts
               </TabsTrigger>
@@ -1402,6 +1404,9 @@ export default function SpendWiseCentralPage() {
               </TabsTrigger>
                <TabsTrigger value="review-summary" className="flex items-center justify-start gap-1 tabs-trigger-active-underline text-xs whitespace-normal h-14">
                 <BarChart3 className="h-3.5 w-3.5" /> 7. Review Spend
+              </TabsTrigger>
+              <TabsTrigger value="manage-workspace" className="flex items-center justify-start gap-1 tabs-trigger-active-underline text-xs whitespace-normal h-14">
+                <Building2 className="h-3.5 w-3.5" /> 8. Manage Workspace
               </TabsTrigger>
             </TabsList>
 
@@ -1512,7 +1517,7 @@ export default function SpendWiseCentralPage() {
                         emptyMessage="All suppliers are associated with at least one part."
                         searchPlaceholder="Search suppliers..."
                       />
-                      
+
                       <ValidationSection
                         title={`C. Single-Source Parts (${filteredSingleSourceParts.length})`}
                         data={filteredSingleSourceParts}
@@ -1667,6 +1672,9 @@ export default function SpendWiseCentralPage() {
               appCurrency={appCurrency}
             />
             </TabsContent>
+            <TabsContent value="manage-workspace" className="mt-4">
+              <ManageWorkspaceTab />
+            </TabsContent>
           </Tabs>
         </main>
         <footer className="fixed bottom-0 left-0 right-0 z-50 flex h-12 items-center justify-between border-t bg-card px-4 py-3 text-xs text-muted-foreground sm:px-6 lg:px-8 shadow-md">
@@ -1749,7 +1757,7 @@ interface ValidationSectionProps<T> {
   renderItem: (item: T) => React.ReactNode;
   emptyMessage: string;
   searchPlaceholder: string;
-  isGrouped?: boolean; 
+  isGrouped?: boolean;
 }
 
 function ValidationSection<T>({
