@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ScatterChart, Scatter as RechartsScatter, ZAxis, Tooltip as RechartsTooltip, Cell } from 'recharts';
 import { ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
+import type { CurrencyInfo } from '@/lib/currencyConfig';
 
 // Simple Badge component
 const Badge = ({ children, variant = "default", className = "" }: { 
@@ -31,6 +32,7 @@ interface UploadPartCategoryTabProps {
   spendByCategoryData: SpendDataPoint[];
   partsPerCategoryData: CountDataPoint[];
   setPartCategoryMappings?: React.Dispatch<React.SetStateAction<PartCategoryMapping[]>>;
+  appCurrency: CurrencyInfo;
 }
 
 interface DragItem {
@@ -65,8 +67,10 @@ export default function UploadPartCategoryTab({
   partCategoryMappings, 
   spendByCategoryData, 
   partsPerCategoryData, 
-  setPartCategoryMappings 
+  setPartCategoryMappings,
+  appCurrency  // ← ADD THIS LINE
 }: UploadPartCategoryTabProps) {
+  
   const [draggedItem, setDraggedItem] = useState<DragItem | null>(null);
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -140,7 +144,23 @@ export default function UploadPartCategoryTab({
   }, [spendByCategoryData, partsPerCategoryData]);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+    // Add safety check for appCurrency
+    if (!appCurrency) {
+      return new Intl.NumberFormat('en-US', { 
+        style: 'currency', 
+        currency: 'USD', 
+        minimumFractionDigits: 0, 
+        maximumFractionDigits: 0 
+      }).format(value);
+    }
+
+    const convertedValue = value * appCurrency.rate;
+    return new Intl.NumberFormat(appCurrency.locale, { 
+      style: 'currency', 
+      currency: appCurrency.code, 
+      minimumFractionDigits: 0, 
+      maximumFractionDigits: 0 
+    }).format(convertedValue);
   };
 
   const formatNumber = (value: number) => {
@@ -148,9 +168,14 @@ export default function UploadPartCategoryTab({
   };
 
   const formatYAxisTick = (value: number) => {
-    if (Math.abs(value) >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
-    if (Math.abs(value) >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
-    return `$${value.toFixed(0)}`;
+    // Add safety check for appCurrency
+    const symbol = appCurrency?.symbol || '$';
+    const rate = appCurrency?.rate || 1;
+
+    const convertedValue = value * rate;
+    if (Math.abs(convertedValue) >= 1_000_000) return `${symbol}${(convertedValue / 1_000_000).toFixed(1)}M`;
+    if (Math.abs(convertedValue) >= 1_000) return `${symbol}${(convertedValue / 1_000).toFixed(1)}K`;
+    return `${symbol}${convertedValue.toFixed(0)}`;
   };
 
   const getPartCategoryCount = (partId: string) => {
@@ -384,7 +409,7 @@ export default function UploadPartCategoryTab({
                         </p>
                         <p className="text-xs text-muted-foreground">{part.partNumber}</p>
                         <p className="text-xs text-blue-600 dark:text-blue-400">
-                          ${part.price} • {part.annualDemand.toLocaleString()} units
+                            {formatCurrency(part.price)} • {part.annualDemand.toLocaleString()} units
                         </p>
                       </div>
                     </div>

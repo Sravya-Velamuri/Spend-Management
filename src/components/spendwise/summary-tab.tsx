@@ -18,6 +18,7 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useMemo } from 'react';
+import type { CurrencyInfo } from '@/lib/currencyConfig';
 
 interface SummaryTabProps {
   suppliers: Supplier[];
@@ -25,6 +26,7 @@ interface SummaryTabProps {
   partsWithSpend: (Part & { annualSpend: number })[]; 
   partSupplierAssociations: PartSupplierAssociation[];
   spendByCategoryData: SpendDataPoint[];
+  appCurrency: CurrencyInfo;
 }
 
 const PIE_COLORS_CATEGORIES = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
@@ -61,13 +63,26 @@ export default function SummaryTab({
 }: SummaryTabProps) {
 
   const formatCurrency = (value: number) => {
-    if (value === undefined || value === null) return '$0';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+    if (value === undefined || value === null) return `${appCurrency.symbol}0`;
+    const convertedValue = value * appCurrency.rate;
+    return new Intl.NumberFormat(appCurrency.locale, { 
+      style: 'currency', 
+      currency: appCurrency.code, 
+      minimumFractionDigits: 0, 
+      maximumFractionDigits: 0 
+    }).format(convertedValue);
   };
+
   
   const formatCurrencyWithDecimals = (value: number) => {
-    if (value === undefined || value === null) return '$0.00';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+    if (value === undefined || value === null) return `${appCurrency.symbol}0.00`;
+    const convertedValue = value * appCurrency.rate;
+    return new Intl.NumberFormat(appCurrency.locale, { 
+      style: 'currency', 
+      currency: appCurrency.code, 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    }).format(convertedValue);
   };
 
   const formatNumber = (value: number) => {
@@ -76,10 +91,11 @@ export default function SummaryTab({
   };
 
   const formatYAxisTick = (value: number) => {
-    if (Math.abs(value) >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(1)}B`;
-    if (Math.abs(value) >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
-    if (Math.abs(value) >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
-    return `$${value.toFixed(0)}`;
+    const convertedValue = value * appCurrency.rate;
+    if (Math.abs(convertedValue) >= 1_000_000_000) return `${appCurrency.symbol}${(convertedValue / 1_000_000_000).toFixed(1)}B`;
+    if (Math.abs(convertedValue) >= 1_000_000) return `${appCurrency.symbol}${(convertedValue / 1_000_000).toFixed(1)}M`;
+    if (Math.abs(convertedValue) >= 1_000) return `${appCurrency.symbol}${(convertedValue / 1_000).toFixed(1)}K`;
+    return `${appCurrency.symbol}${convertedValue.toFixed(0)}`;
   };
   
   const supplierCountByCountry = useMemo(() => {

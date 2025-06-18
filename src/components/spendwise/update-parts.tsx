@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import React, { useState, useMemo, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
+import type { CurrencyInfo } from '@/lib/currencyConfig';
 
 interface UpdatePartsTabProps {
   parts: Part[];
@@ -33,8 +34,9 @@ interface UpdatePartsTabProps {
     localHomeCountry: string
   ) => number;
   homeCountry: string;
-  tariffChargePercent: number; // This is the tariffRateMultiplierPercent from page.tsx
+  tariffChargePercent: number;
   totalLogisticsCostPercent: number;
+  appCurrency: CurrencyInfo;
 }
 
 const ABC_COLORS = {
@@ -63,13 +65,22 @@ export default function UpdatePartsTab({
   homeCountry,
   tariffChargePercent,
   totalLogisticsCostPercent,
+  appCurrency,
 }: UpdatePartsTabProps) {
+
+
   const [selectedPartId, setSelectedPartId] = useState<string | null>(null);
   const [isPart360Open, setIsPart360Open] = useState(false);
   const [part360Details, setPart360Details] = useState<Part360Details | null>(null);
 
   const formatCurrency = (value: number, decimals = 0) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value);
+    const convertedValue = value * appCurrency.rate;
+    return new Intl.NumberFormat(appCurrency.locale, { 
+      style: 'currency', 
+      currency: appCurrency.code, 
+      minimumFractionDigits: decimals, 
+      maximumFractionDigits: decimals 
+    }).format(convertedValue);
   };
 
   const formatNumber = (value: number) => {
@@ -298,7 +309,7 @@ export default function UpdatePartsTab({
                       placeholder="Part Name"
                     />
                     <div className="relative w-24">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{appCurrency.symbol}</span>
                       <Input
                         type="text"
                         value={formatPriceForInput(part.price)}

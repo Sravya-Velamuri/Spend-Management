@@ -26,10 +26,12 @@ import { Package, Building, ArrowRightLeft, FolderTree, Sun, Moon, Sparkles, Loa
 import type { Part, Supplier, PartCategoryMapping, PartSupplierAssociation } from '@/types/spendwise';
 import { generateSpendData } from '@/ai/flows/generate-spend-data-flow';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAutoGeocode } from '@/hooks/useAutoGeocode';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import * as XLSX from 'xlsx';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { getCurrencyConfig, CURRENCY_CONFIG } from '@/lib/currencyConfig';
 
 
 export interface SpendDataPoint {
@@ -92,6 +94,16 @@ export default function SpendWiseCentralPage() {
   const [formattedDateTime, setFormattedDateTime] = useState<string>('');
 
   const [appHomeCountry, setAppHomeCountry] = useState<string>(DEFAULT_HOME_COUNTRY);
+  const [appCurrency, setAppCurrency] = useState<CurrencyInfo>(() => {
+    if (typeof window === 'undefined') {
+      // Server-side: return a default value
+      return { code: 'USD', symbol: '$', rate: 1.00, locale: 'en-US' };
+    }
+    return getCurrencyConfig(DEFAULT_HOME_COUNTRY);
+  });
+
+  // Auto-geocoding hook
+  useAutoGeocode({ suppliers, setSuppliers, enabled: true });
 
   // State for validation results
   const [validationPerformed, setValidationPerformed] = useState<boolean>(false);
@@ -610,7 +622,22 @@ export default function SpendWiseCentralPage() {
                  errors.push(`Suppliers Row ${index + 2}: SupplierId "${supplierId}" already exists. Skipped.`); return;
             }
             const fullAddress = [streetAddress, city, stateOrProvince, postalCode, country].filter(Boolean).join(', ');
-            newSuppliersArr.push({ id: `s_excel_${Date.now()}_${index}`, supplierId, name, description, streetAddress, city, stateOrProvince, postalCode, country, address: fullAddress });
+            
+            // Don't set coordinates for new suppliers - let auto-geocoding handle it
+            newSuppliersArr.push({ 
+              id: `s_excel_${Date.now()}_${index}`, 
+              supplierId, 
+              name, 
+              description, 
+              streetAddress, 
+              city, 
+              stateOrProvince, 
+              postalCode, 
+              country, 
+              address: fullAddress,
+              latitude: undefined,
+              longitude: undefined
+            });
           } catch (err) { errors.push(`Suppliers Row ${index + 2}: ${err instanceof Error ? err.message : String(err)}`); }
         });
       }
@@ -684,11 +711,25 @@ export default function SpendWiseCentralPage() {
 
 
       const successMessage = `Successfully imported: ${newPartsArr.length} parts, ${newSuppliersArr.length} suppliers, ${newAssociations.length} associations, ${newCategoryMappings.length} category mappings.`;
+      
+      const geocodingMessage = newSuppliersArr.length > 0 && newSuppliersArr.some(s => s.city || s.country) 
+        ? ' Auto-geocoding will process suppliers with addresses.' 
+        : '';
+      
       if (errors.length > 0) {
         console.warn('Excel Upload Errors:', errors.slice(0, 10));
-        toast({ variant: "destructive", title: "Partially Successful", description: `${successMessage} ${errors.length} errors occurred (e.g., duplicates skipped). Check console.`, duration: 7000 });
+        toast({ 
+          variant: "destructive", 
+          title: "Partially Successful", 
+          description: `${successMessage}${geocodingMessage} ${errors.length} errors occurred (e.g., duplicates skipped). Check console.`, 
+          duration: 7000 
+        });
       } else {
-        toast({ title: "Excel Upload Complete", description: successMessage });
+        toast({ 
+          title: "Excel Upload Complete", 
+          description: successMessage + geocodingMessage,
+          duration: 5000
+        });
       }
       setIsExcelUploadDialogOpen(false);
     } catch (error) {
@@ -736,9 +777,14 @@ export default function SpendWiseCentralPage() {
       setPartSupplierAssociations(tadaData.partSupplierAssociations);
       resetValidationStates();
       
+      const geocodingNote = tadaData.suppliers.filter(s => s.city || s.country).length > 0 
+        ? ' Auto-geocoding will process suppliers with addresses.' 
+        : '';
+      
       toast({ 
         title: "TADA Data Loaded", 
-        description: `Loaded ${tadaData.parts.length} parts, ${tadaData.suppliers.length} suppliers` 
+        description: `Loaded ${tadaData.parts.length} parts, ${tadaData.suppliers.length} suppliers.${geocodingNote}`,
+        duration: 5000
       });
       
     } catch (error) {
@@ -828,18 +874,43 @@ export default function SpendWiseCentralPage() {
   }, [partsWithSpend]);
 
   const formatCurrencyDisplay = useCallback((value: number) => {
-    if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`;
-    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
-    if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
-    return value.toFixed(2);
-  }, []);
+    // Ensure consistent formatting between server and client
+    if (typeof window === 'undefined') {
+      // Server-side: return a simple format
+      if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(2)}B`;
+      if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
+      if (value >= 1_000) return `$${(value / 1_000).toFixed(2)}K`;
+      return `$${value.toFixed(2)}`;
+    }
+    
+    // Client-side: use full formatting
+    const convertedValue = value * appCurrency.rate;
+    const formatted = new Intl.NumberFormat(appCurrency.locale, {
+      style: 'currency',
+      currency: appCurrency.code,
+      notation: 'compact',
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2, // Add this for consistency
+    }).format(convertedValue);
+    return formatted;
+  }, [appCurrency]);
+  
+    const formatCurrencyWithConversion = useCallback((value: number, decimals = 0) => {
+      const convertedValue = value * appCurrency.rate;
+      return new Intl.NumberFormat(appCurrency.locale, { 
+        style: 'currency', 
+        currency: appCurrency.code, 
+        minimumFractionDigits: decimals, 
+        maximumFractionDigits: decimals 
+      }).format(convertedValue);
+    }, [appCurrency]);
 
   const summaryStatsData = useMemo(() => [
     { Icon: Briefcase, fullLabel: "Total Parts", value: totalParts, oneWordLabel: "Parts" },
     { Icon: Users, fullLabel: "Total Suppliers", value: totalSuppliers, oneWordLabel: "Suppliers" },
     { Icon: FolderTree, fullLabel: "Total Categories", value: totalCategories, oneWordLabel: "Categories" },
-    { Icon: DollarSignIcon, fullLabel: "Total Annual Spend", value: formatCurrencyDisplay(totalAnnualSpend), oneWordLabel: "Spend" },
-  ], [totalParts, totalSuppliers, totalCategories, totalAnnualSpend, formatCurrencyDisplay]);
+    { Icon: DollarSignIcon, fullLabel: `Total Annual Spend (${appCurrency.code})`, value: formatCurrencyDisplay(totalAnnualSpend), oneWordLabel: "Spend" },
+  ], [totalParts, totalSuppliers, totalCategories, totalAnnualSpend, formatCurrencyDisplay, appCurrency.code]);
 
 
   const spendByCategoryData: SpendDataPoint[] = useMemo(() => {
@@ -1069,7 +1140,11 @@ export default function SpendWiseCentralPage() {
                   <TooltipTrigger asChild>
                     <div className="flex items-center space-x-1">
                       <Home className="h-4 w-4 text-muted-foreground" />
-                      <Select value={appHomeCountry} onValueChange={(value) => {setAppHomeCountry(value); resetValidationStates();}}>
+                      <Select value={appHomeCountry} onValueChange={(value) => {
+                        setAppHomeCountry(value); 
+                        setAppCurrency(getCurrencyConfig(value));
+                        resetValidationStates();
+                      }}>
                           <SelectTrigger className="w-[100px] h-8 text-xs">
                               <SelectValue placeholder="Home Country" />
                           </SelectTrigger>
@@ -1079,6 +1154,9 @@ export default function SpendWiseCentralPage() {
                               ))}
                           </SelectContent>
                       </Select>
+                      <Badge variant="outline" className="ml-2 text-xs">
+                        {appCurrency.code}
+                      </Badge>
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -1340,6 +1418,8 @@ export default function SpendWiseCentralPage() {
                     homeCountry={appHomeCountry}
                     tariffChargePercent={tariffRateMultiplierPercent}
                     totalLogisticsCostPercent={totalLogisticsCostPercent}
+                    appCurrency={appCurrency}
+                    formatCurrencyWithConversion={formatCurrencyWithConversion}
                   />
             </TabsContent>
             <TabsContent value="update-suppliers" className="mt-4">
@@ -1358,13 +1438,14 @@ export default function SpendWiseCentralPage() {
               />
             </TabsContent>
             <TabsContent value="upload-part-category" className="mt-4">
-              <UploadPartCategoryTab
-                parts={parts}
-                partCategoryMappings={partCategoryMappings}
-                spendByCategoryData={spendByCategoryData}
-                partsPerCategoryData={partsPerCategoryData}
-                setPartCategoryMappings={(value) => { setPartCategoryMappings(value); resetValidationStates(); }}
-              />
+            <UploadPartCategoryTab
+              parts={parts}
+              partCategoryMappings={partCategoryMappings}
+              spendByCategoryData={spendByCategoryData}
+              partsPerCategoryData={partsPerCategoryData}
+              setPartCategoryMappings={(value) => { setPartCategoryMappings(value); resetValidationStates(); }}
+              appCurrency={appCurrency}
+            />
             </TabsContent>
             <TabsContent value="validate-spend-network" className="mt-4">
               <Card>
@@ -1566,23 +1647,25 @@ export default function SpendWiseCentralPage() {
                 originalTariffMultiplierPercent={tariffRateMultiplierPercent}
                 originalTotalLogisticsCostPercent={totalLogisticsCostPercent}
                 defaultAnalysisHomeCountry={appHomeCountry}
+                appCurrency={appCurrency}
               />
             </TabsContent>
              <TabsContent value="review-summary" className="mt-4">
-              <ReviewSummaryTab
-                parts={parts}
-                suppliers={suppliers}
-                partCategoryMappings={partCategoryMappings}
-                partSupplierAssociations={partSupplierAssociations}
-                partsWithSpend={partsWithSpend}
-                defaultAnalysisHomeCountry={appHomeCountry}
-                originalTariffMultiplierPercent={tariffRateMultiplierPercent}
-                originalTotalLogisticsCostPercent={totalLogisticsCostPercent}
-                totalAnnualSpend={totalAnnualSpend}
-                totalParts={totalParts}
-                totalSuppliers={totalSuppliers}
-                totalCategories={totalCategories}
-              />
+            <ReviewSummaryTab
+              parts={parts}
+              suppliers={suppliers}
+              partCategoryMappings={partCategoryMappings}
+              partSupplierAssociations={partSupplierAssociations}
+              partsWithSpend={partsWithSpend}
+              defaultAnalysisHomeCountry={appHomeCountry}
+              originalTariffMultiplierPercent={tariffRateMultiplierPercent}
+              originalTotalLogisticsCostPercent={totalLogisticsCostPercent}
+              totalAnnualSpend={totalAnnualSpend}
+              totalParts={totalParts}
+              totalSuppliers={totalSuppliers}
+              totalCategories={totalCategories}
+              appCurrency={appCurrency}
+            />
             </TabsContent>
           </Tabs>
         </main>

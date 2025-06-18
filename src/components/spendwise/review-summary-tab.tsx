@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { BarChart3, DollarSign, Package, Users, FolderTree, TrendingUp, ShoppingCart, Filter as FilterIcon, XCircle, Search } from "lucide-react";
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, Cell } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
+import type { CurrencyInfo } from '@/lib/currencyConfig';
 
 const LOCAL_STORAGE_SCENARIO_LIST_KEY = "spendwise_scenario_list_v2";
 const LOCAL_STORAGE_SCENARIO_DATA_PREFIX = "spendwise_scenario_data_v2_";
@@ -41,6 +42,7 @@ interface ReviewSummaryTabProps {
   totalParts: number; 
   totalSuppliers: number; 
   totalCategories: number; 
+  appCurrency: CurrencyInfo;
 }
 
 const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
@@ -57,8 +59,10 @@ export default function ReviewSummaryTab({
   totalAnnualSpend: overallTotalAnnualSpend,
   totalParts: overallTotalParts,
   totalSuppliers: overallTotalSuppliers,
-  totalCategories: overallTotalCategories
+  totalCategories: overallTotalCategories,
+  appCurrency
 }: ReviewSummaryTabProps) {
+
   const [selectedScenarioName, setSelectedScenarioName] = useState<string>(VIEW_CURRENT_DATA_VALUE);
   const [loadedScenario, setLoadedScenario] = useState<SavedScenario | null>(null);
   const [savedScenarioNames, setSavedScenarioNames] = useState<string[]>([]);
@@ -110,8 +114,15 @@ export default function ReviewSummaryTab({
   };
 
   const formatCurrency = (value: number, decimals = 0) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value);
+    const convertedValue = value * appCurrency.rate;
+    return new Intl.NumberFormat(appCurrency.locale, { 
+      style: 'currency', 
+      currency: appCurrency.code, 
+      minimumFractionDigits: decimals, 
+      maximumFractionDigits: decimals 
+    }).format(convertedValue);
   };
+
   const formatNumber = (value: number) => new Intl.NumberFormat('en-US').format(value);
 
   const filteredAndCalculatedParts = useMemo(() => {

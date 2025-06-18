@@ -18,7 +18,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend
 import { ChartContainer } from '@/components/ui/chart';
 import CreateWorkspaceDialog from './create-workspace-dialog';
 import { HelpCircle, Info, Percent, DollarSign, Trash2, PlusCircle, ChevronsUpDown, TrendingUp, Save, Upload, Edit3, Layers, BarChart3, Maximize, Minimize, Filter, PackageSearch, Palette, MapPin, Activity, Settings2, FileJson, UserPlus, Globe, FolderTree, Package } from "lucide-react";
-
+import type { CurrencyInfo } from '@/lib/currencyConfig';
 
 interface WhatIfAnalysisTabProps {
   parts: Part[];
@@ -29,6 +29,7 @@ interface WhatIfAnalysisTabProps {
   originalTariffMultiplierPercent: number; 
   originalTotalLogisticsCostPercent: number;
   defaultAnalysisHomeCountry: string;
+  appCurrency: CurrencyInfo;
 }
 
 interface CategoryAdjustment {
@@ -86,7 +87,9 @@ export default function WhatIfAnalysisTab({
   originalTariffMultiplierPercent,
   originalTotalLogisticsCostPercent,
   defaultAnalysisHomeCountry,
+  appCurrency,
 }: WhatIfAnalysisTabProps) {
+
   const { toast } = useToast();
 
   const [analysisHomeCountry, setAnalysisHomeCountry] = useState<string>(defaultAnalysisHomeCountry);
@@ -139,7 +142,13 @@ export default function WhatIfAnalysisTab({
   }, [suppliers, defaultAnalysisHomeCountry]);
 
   const formatCurrency = (value: number, decimals = 0) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value);
+    const convertedValue = value * appCurrency.rate;
+    return new Intl.NumberFormat(appCurrency.locale, { 
+      style: 'currency', 
+      currency: appCurrency.code, 
+      minimumFractionDigits: decimals, 
+      maximumFractionDigits: decimals 
+    }).format(convertedValue);
   };
 
   const calculateAdjustedSpendForPart = useCallback((
