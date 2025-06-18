@@ -826,13 +826,6 @@ export default function WhatIfAnalysisTab({
                     </div>
                 )}
                 </div>
-                 <Button 
-                    onClick={() => setIsCreateWorkspaceDialogOpen(true)} 
-                    variant="outline" 
-                    className="w-full mt-4 text-xs h-9"
-                >
-                    <UserPlus className="mr-2 h-4 w-4" /> Create Workspace
-                </Button>
             </CardContent>
           </Card>
         </div>
