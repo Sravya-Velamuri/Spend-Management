@@ -617,30 +617,69 @@ export default function WhatIfAnalysisTab({
                 )}
                 </div>
                 
-                <div className="space-y-2 p-4 border rounded-lg bg-muted/20">
-                <h4 className="font-medium text-sm flex items-center"><PackageSearch className="h-4 w-4 mr-1.5"/>Source Country Specific Tariff Adjustment</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end pt-2">
-                    <div className="sm:col-span-5">
-                    <Label htmlFor="selectCountryTariff" className="text-xs">Supplier Country (Foreign)</Label>
-                    <Select value={selectedCountryForTariff} onValueChange={setSelectedCountryForTariff}>
-                        <SelectTrigger id="selectCountryTariff" className="h-9 text-xs"><SelectValue placeholder="Select Country" /></SelectTrigger>
-                        <SelectContent>
-                        {uniqueSupplierCountriesForAnalysis.filter(c => c !== analysisHomeCountry).map(country => <SelectItem key={country} value={country} className="text-xs">{country}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+                <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
+                <h4 className="font-semibold text-base flex items-center mb-3">
+                    <MapPin className="h-5 w-5 mr-2 text-blue-500"/>
+                    Source Country Specific Tariff Adjustment
+                </h4>
+                <div className="space-y-4">
+                    <div>
+                        <Label htmlFor="selectCountryTariff" className="text-sm font-medium mb-2 block">
+                            Supplier Country (Foreign)
+                        </Label>
+                        <Select value={selectedCountryForTariff} onValueChange={setSelectedCountryForTariff}>
+                            <SelectTrigger id="selectCountryTariff" className="h-10 text-sm">
+                                <SelectValue placeholder="Select Country..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {uniqueSupplierCountriesForAnalysis.filter(c => c !== analysisHomeCountry).map(country => 
+                                    <SelectItem key={country} value={country} className="text-sm">{country}</SelectItem>
+                                )}
+                            </SelectContent>
+                        </Select>
                     </div>
-                    <div className="sm:col-span-5">
-                    <Label htmlFor="countryTariffPointsSlider" className="text-xs">Additional Tariff (points)</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                        <Slider id="countryTariffPointsSlider" min={-100} max={100} step={1} value={[countryTariffAdjustmentValue]} onValueChange={(val) => setCountryTariffAdjustmentValue(val[0])} className="flex-grow" />
-                        <Input type="number" value={countryTariffAdjustmentValue} onChange={(e)=> setCountryTariffAdjustmentValue(parseInt(e.target.value))} className="w-20 h-8 text-xs text-right"/>
-                        <span className="text-xs w-5">pts</span>
+                    
+                    <div className="space-y-2">
+                        <Label htmlFor="countryTariffPointsSlider" className="text-sm font-medium">
+                            Additional Tariff (points)
+                        </Label>
+                        <div className="flex items-center gap-3">
+                            <Slider 
+                                id="countryTariffPointsSlider" 
+                                min={-100} 
+                                max={100} 
+                                step={1} 
+                                value={[countryTariffAdjustmentValue]} 
+                                onValueChange={(val) => setCountryTariffAdjustmentValue(val[0])} 
+                                className="flex-grow h-6"
+                            />
+                            <div className="flex items-center gap-1 min-w-[80px]">
+                                <Input 
+                                    type="number" 
+                                    value={countryTariffAdjustmentValue} 
+                                    onChange={(e) => setCountryTariffAdjustmentValue(parseInt(e.target.value) || 0)} 
+                                    className="w-16 h-9 text-sm text-right font-medium"
+                                />
+                                <span className="text-sm font-medium">pts</span>
+                            </div>
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground px-1">
+                            <span>-100</span>
+                            <span>0</span>
+                            <span>+100</span>
+                        </div>
                     </div>
-                    </div>
-                    <Button onClick={handleAddCountryTariffAdjustment} size="sm" className="h-9 text-xs sm:col-span-2" disabled={!selectedCountryForTariff}>
-                    <PlusCircle className="mr-1 h-4 w-4" /> Add
+                    
+                    <Button 
+                        onClick={handleAddCountryTariffAdjustment} 
+                        size="sm" 
+                        className="w-full h-10 text-sm font-medium" 
+                        disabled={!selectedCountryForTariff}
+                    >
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Country Tariff Adjustment
                     </Button>
                 </div>
+
                 {activeCountryTariffAdjustments.length > 0 && (
                     <ScrollArea className="mt-2 space-y-1 text-xs max-h-20 border rounded-md p-1.5 bg-background">
                     {activeCountryTariffAdjustments.map(adj => (
