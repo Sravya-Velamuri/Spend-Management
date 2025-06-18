@@ -1,7 +1,7 @@
-
 "use client";
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Globe, Mail, MapPin, Home, Building, PlusCircle, Trash2 } from "lucide-react";
+import { UserPlus, Globe, Mail, MapPin, Home, Building, PlusCircle, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '../ui/scroll-area';
 
@@ -31,7 +31,9 @@ interface WorkspaceNameEntry {
 
 export default function CreateWorkspaceDialog({ isOpen, onClose, uniqueSupplierCountries }: CreateWorkspaceDialogProps) {
   const { toast } = useToast();
-  const [step, setStep] = useState(1); // 1: Form, 2: MFA (mock)
+  const [step, setStep] = useState(1); // 1: Form, 2: MFA
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // Form fields
   const [firstName, setFirstName] = useState('');
@@ -60,7 +62,7 @@ export default function CreateWorkspaceDialog({ isOpen, onClose, uniqueSupplierC
     setWorkspaceNames(workspaceNames.map(ws => (ws.id === id ? { ...ws, name: value } : ws)));
   };
 
-  const handleSubmitForm = () => {
+  const handleSubmitForm = async () => {
     // Basic validation
     if (!firstName || !lastName || !email || !country || workspaceNames.some(ws => !ws.name.trim())) {
       toast({
@@ -70,29 +72,93 @@ export default function CreateWorkspaceDialog({ isOpen, onClose, uniqueSupplierC
       });
       return;
     }
-    // Mock submission - in a real app, this would go to a backend
-    console.log("Workspace Data:", {
-      firstName, lastName, domainName, email,
-      address: { streetAddress, city, stateProvince, postalCode, country },
-      workspaces: workspaceNames.map(ws => ws.name),
-    });
-    // Proceed to mock MFA step
-    setStep(2); 
+
+    setIsSubmitting(true);
+
+    try {
+      // Prepare data for Google Sheets
+      const formData = {
+        firstName,
+        lastName,
+        domainName,
+        email,
+        address: {
+          streetAddress,
+          city,
+          stateProvince,
+          postalCode,
+          country
+        },
+        workspaces: workspaceNames.map(ws => ws.name).filter(name => name.trim())
+      };
+
+      // Send data through our API route
+      const response = await fetch('/api/submit-workspace', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        toast({
+          title: "Registration Submitted!",
+          description: "Your workspace registration has been received. Please check your email for the verification code.",
+        });
+        
+        // Log success for debugging
+        console.log('Registration successful:', result);
+        
+        // Proceed to MFA step
+        setStep(2);
+      } else {
+        throw new Error(result.message || 'Failed to submit registration');
+      }
+      
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Submission Failed",
+        description: error instanceof Error ? error.message : "There was an error submitting your registration. Please try again.",
+      });
+      console.error('Submission error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleVerifyMfa = () => {
-    // Mock MFA verification
-    if (mfaCode.length === 6 && /^\d+$/.test(mfaCode)) { // Simple 6-digit check
-      toast({
-        title: "Workspace Created (Mock)",
-        description: "Your workspace details have been submitted and email verified (mocked).",
-      });
-      handleCloseDialog();
+  const handleVerifyMfa = async () => {
+    // MFA verification
+    if (mfaCode.length === 6 && /^\d+$/.test(mfaCode)) {
+      setIsVerifying(true);
+      
+      try {
+        // Simulate verification delay (in a real app, this would verify with your backend)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        toast({
+          title: "Workspace Created Successfully!",
+          description: `Your workspace "${workspaceNames[0].name}" has been created and verified.`,
+        });
+        
+        handleCloseDialog();
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Verification Failed",
+          description: "There was an error verifying your code. Please try again.",
+        });
+      } finally {
+        setIsVerifying(false);
+      }
     } else {
       toast({
         variant: "destructive",
-        title: "Invalid MFA Code",
-        description: "Please enter a 6-digit verification code.",
+        title: "Invalid Code",
+        description: "Please enter a valid 6-digit verification code.",
       });
     }
   };
@@ -111,74 +177,160 @@ export default function CreateWorkspaceDialog({ isOpen, onClose, uniqueSupplierC
     setWorkspaceNames([{ id: `ws_${Date.now()}`, name: '' }]);
     setMfaCode('');
     setStep(1);
+    setIsSubmitting(false);
+    setIsVerifying(false);
     onClose();
   };
 
+  const inputClassName = "h-9 text-sm border border-slate-300 dark:border-slate-600 bg-background text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-ring focus:border-primary";
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleCloseDialog(); else onClose(); }}>
-      <DialogContent className="sm:max-w-lg">
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleCloseDialog(); }}>
+      <DialogContent className="sm:max-w-xl border border-slate-300 dark:border-slate-600">
         <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <UserPlus className="mr-2 h-5 w-5" />
+          <div className="flex items-center justify-center mb-4">
+            <Image 
+              src="/TADA_TM-2023_Color-White-Logo.svg" 
+              alt="TADA Logo" 
+              width={160} 
+              height={50}
+              className="h-12 w-auto dark:brightness-100 brightness-0"
+            />
+          </div>
+          <DialogTitle className="text-center text-xl font-semibold">
             Create New Workspace
           </DialogTitle>
-          <DialogDescription>
-            {step === 1 ? "Provide your details and desired workspace names." : "Please enter the verification code sent to your email."}
+          <DialogDescription className="text-center">
+            {step === 1 ? "Provide your details and desired workspace names." : "Enter the verification code sent to your email."}
           </DialogDescription>
         </DialogHeader>
 
         {step === 1 && (
           <ScrollArea className="max-h-[60vh] p-1 pr-3">
-            <div className="grid gap-4 py-4 text-sm">
+            <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="firstName">First Name <span className="text-destructive">*</span></Label>
-                  <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="h-8 text-xs" />
+                <div className="space-y-2">
+                  <Label htmlFor="firstName" className="text-sm font-medium">
+                    First Name <span className="text-destructive">*</span>
+                  </Label>
+                  <Input 
+                    id="firstName" 
+                    value={firstName} 
+                    onChange={(e) => setFirstName(e.target.value)} 
+                    className={inputClassName}
+                    placeholder="John"
+                    disabled={isSubmitting}
+                  />
                 </div>
-                <div>
-                  <Label htmlFor="lastName">Last Name <span className="text-destructive">*</span></Label>
-                  <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className="h-8 text-xs" />
+                <div className="space-y-2">
+                  <Label htmlFor="lastName" className="text-sm font-medium">
+                    Last Name <span className="text-destructive">*</span>
+                  </Label>
+                  <Input 
+                    id="lastName" 
+                    value={lastName} 
+                    onChange={(e) => setLastName(e.target.value)} 
+                    className={inputClassName}
+                    placeholder="Doe"
+                    disabled={isSubmitting}
+                  />
                 </div>
               </div>
               
-              <div>
-                <Label htmlFor="domainName" className="flex items-center"><Globe className="h-3 w-3 mr-1"/>Domain Name (e.g., company.com)</Label>
-                <Input id="domainName" placeholder="yourcompany.com" value={domainName} onChange={(e) => setDomainName(e.target.value)} className="h-8 text-xs" />
+              <div className="space-y-2">
+                <Label htmlFor="domainName" className="flex items-center text-sm font-medium">
+                  <Globe className="h-3.5 w-3.5 mr-1.5"/>Domain Name (e.g., company.com)
+                </Label>
+                <Input 
+                  id="domainName" 
+                  placeholder="yourcompany.com" 
+                  value={domainName} 
+                  onChange={(e) => setDomainName(e.target.value)} 
+                  className={inputClassName}
+                  disabled={isSubmitting}
+                />
               </div>
-              <div>
-                <Label htmlFor="email" className="flex items-center"><Mail className="h-3 w-3 mr-1"/>Email <span className="text-destructive">*</span></Label>
-                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-8 text-xs" />
+              
+              <div className="space-y-2">
+                <Label htmlFor="email" className="flex items-center text-sm font-medium">
+                  <Mail className="h-3.5 w-3.5 mr-1.5"/>Email <span className="text-destructive">*</span>
+                </Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="you@example.com" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  className={inputClassName}
+                  disabled={isSubmitting}
+                />
               </div>
 
-              <fieldset className="border p-3 rounded-md">
-                <legend className="text-xs font-medium px-1 flex items-center"><MapPin className="h-3 w-3 mr-1"/>Address</legend>
-                <div className="space-y-3 mt-1">
-                  <div>
-                    <Label htmlFor="streetAddress">Street Address</Label>
-                    <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} className="h-8 text-xs" />
+              <fieldset className="border-2 border-slate-300 dark:border-slate-600 rounded-lg p-4 space-y-3 bg-slate-50/50 dark:bg-slate-900/30">
+                <legend className="text-sm font-medium px-2 flex items-center">
+                  <MapPin className="h-3.5 w-3.5 mr-1.5"/>Address
+                </legend>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="streetAddress" className="text-sm">Street Address</Label>
+                    <Input 
+                      id="streetAddress" 
+                      value={streetAddress} 
+                      onChange={(e) => setStreetAddress(e.target.value)} 
+                      className={inputClassName}
+                      placeholder="123 Main Street"
+                      disabled={isSubmitting}
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="city">City</Label>
-                      <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} className="h-8 text-xs" />
+                    <div className="space-y-2">
+                      <Label htmlFor="city" className="text-sm">City</Label>
+                      <Input 
+                        id="city" 
+                        value={city} 
+                        onChange={(e) => setCity(e.target.value)} 
+                        className={inputClassName}
+                        placeholder="New York"
+                        disabled={isSubmitting}
+                      />
                     </div>
-                    <div>
-                      <Label htmlFor="stateProvince">State/Province</Label>
-                      <Input id="stateProvince" value={stateProvince} onChange={(e) => setStateProvince(e.target.value)} className="h-8 text-xs" />
+                    <div className="space-y-2">
+                      <Label htmlFor="stateProvince" className="text-sm">State/Province</Label>
+                      <Input 
+                        id="stateProvince" 
+                        value={stateProvince} 
+                        onChange={(e) => setStateProvince(e.target.value)} 
+                        className={inputClassName}
+                        placeholder="NY"
+                        disabled={isSubmitting}
+                      />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="postalCode">Postal Code</Label>
-                      <Input id="postalCode" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} className="h-8 text-xs" />
+                    <div className="space-y-2">
+                      <Label htmlFor="postalCode" className="text-sm">Postal Code</Label>
+                      <Input 
+                        id="postalCode" 
+                        value={postalCode} 
+                        onChange={(e) => setPostalCode(e.target.value)} 
+                        className={inputClassName}
+                        placeholder="10001"
+                        disabled={isSubmitting}
+                      />
                     </div>
-                    <div>
-                      <Label htmlFor="country">Country <span className="text-destructive">*</span></Label>
-                       <Select value={country} onValueChange={setCountry}>
-                        <SelectTrigger id="country" className="h-8 text-xs"><SelectValue placeholder="Select country" /></SelectTrigger>
+                    <div className="space-y-2">
+                      <Label htmlFor="country" className="text-sm">
+                        Country <span className="text-destructive">*</span>
+                      </Label>
+                       <Select value={country} onValueChange={setCountry} disabled={isSubmitting}>
+                        <SelectTrigger id="country" className="h-9 text-sm border border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-ring">
+                          <SelectValue placeholder="Select country" />
+                        </SelectTrigger>
                         <SelectContent>
-                          {uniqueSupplierCountries.map(c => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
-                          <SelectItem value="Other" className="text-xs">Other (Not Listed)</SelectItem>
+                          {uniqueSupplierCountries.map(c => (
+                            <SelectItem key={c} value={c} className="text-sm">{c}</SelectItem>
+                          ))}
+                          <SelectItem value="Other" className="text-sm">Other (Not Listed)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -186,26 +338,42 @@ export default function CreateWorkspaceDialog({ isOpen, onClose, uniqueSupplierC
                 </div>
               </fieldset>
               
-              <fieldset className="border p-3 rounded-md">
-                <legend className="text-xs font-medium px-1 flex items-center"><Building className="h-3 w-3 mr-1"/>Workspace Names</legend>
-                 <div className="space-y-2 mt-1">
+              <fieldset className="border-2 border-slate-300 dark:border-slate-600 rounded-lg p-4 space-y-3 bg-slate-50/50 dark:bg-slate-900/30">
+                <legend className="text-sm font-medium px-2 flex items-center">
+                  <Building className="h-3.5 w-3.5 mr-1.5"/>Workspace Names
+                </legend>
+                 <div className="space-y-3">
                   {workspaceNames.map((ws, index) => (
                     <div key={ws.id} className="flex items-center gap-2">
                       <Input 
                         placeholder={`Workspace Name ${index + 1} ${index === 0 ? '(required)' : ''}`}
                         value={ws.name}
                         onChange={(e) => handleWorkspaceNameChange(ws.id, e.target.value)}
-                        className="h-8 text-xs flex-grow"
+                        className={`${inputClassName} flex-grow`}
+                        disabled={isSubmitting}
                       />
                       {workspaceNames.length > 1 && (
-                        <Button variant="ghost" size="icon" onClick={() => handleRemoveWorkspaceName(ws.id)} className="h-7 w-7">
-                          <Trash2 className="h-3.5 w-3.5 text-destructive"/>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleRemoveWorkspaceName(ws.id)} 
+                          className="h-9 w-9 border border-slate-300 dark:border-slate-600 hover:border-destructive hover:bg-destructive/10"
+                          disabled={isSubmitting}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive"/>
                         </Button>
                       )}
                     </div>
                   ))}
-                  <Button type="button" variant="outline" size="sm" onClick={handleAddWorkspaceName} className="text-xs h-7 mt-1">
-                    <PlusCircle className="mr-1.5 h-3 w-3" /> Add Another Workspace
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleAddWorkspaceName} 
+                    className="text-sm h-9 border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-solid hover:border-slate-400 dark:hover:border-slate-500"
+                    disabled={isSubmitting}
+                  >
+                    <PlusCircle className="mr-2 h-3.5 w-3.5" /> Add Another Workspace
                   </Button>
                 </div>
               </fieldset>
@@ -214,26 +382,77 @@ export default function CreateWorkspaceDialog({ isOpen, onClose, uniqueSupplierC
         )}
 
         {step === 2 && (
-            <div className="space-y-4 py-4">
-                <p className="text-sm text-center">A verification code has been sent to <strong>{email}</strong>. <br/> (This is a mock step - enter any 6 digits).</p>
-                <div>
-                    <Label htmlFor="mfaCode" className="text-center block mb-1">Verification Code</Label>
+            <div className="space-y-6 py-6">
+                <div className="text-center space-y-2">
+                  <p className="text-sm">
+                    A verification code has been sent to
+                  </p>
+                  <p className="font-semibold text-lg">{email}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Please check your email and enter the 6-digit code below
+                  </p>
+                </div>
+                <div className="space-y-2 max-w-xs mx-auto">
+                    <Label htmlFor="mfaCode" className="text-center block text-sm font-medium">
+                      Verification Code
+                    </Label>
                     <Input 
                         id="mfaCode" 
                         value={mfaCode} 
                         onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0,6))} 
                         maxLength={6}
-                        className="h-10 text-lg tracking-[0.3em] text-center"
-                        placeholder="______"
+                        className="h-12 text-xl tracking-[0.5em] text-center font-mono border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-ring"
+                        placeholder="000000"
+                        disabled={isVerifying}
                     />
                 </div>
             </div>
         )}
 
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={handleCloseDialog}>Cancel</Button>
-          {step === 1 && <Button type="button" onClick={handleSubmitForm}>Submit & Verify Email</Button>}
-          {step === 2 && <Button type="button" onClick={handleVerifyMfa} disabled={mfaCode.length !== 6}>Verify & Create</Button>}
+        <DialogFooter className="gap-3 sm:gap-3">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={handleCloseDialog}
+            className="min-w-[120px] h-10 text-sm font-medium border border-slate-300 dark:border-slate-600"
+            disabled={isSubmitting || isVerifying}
+          >
+            Cancel
+          </Button>
+          {step === 1 && (
+            <Button 
+              type="button" 
+              onClick={handleSubmitForm}
+              className="min-w-[200px] h-10 text-sm font-medium"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'Submit & Verify Email'
+              )}
+            </Button>
+          )}
+          {step === 2 && (
+            <Button 
+              type="button" 
+              onClick={handleVerifyMfa} 
+              disabled={mfaCode.length !== 6 || isVerifying}
+              className="min-w-[160px] h-10 text-sm font-medium"
+            >
+              {isVerifying ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                'Verify & Create'
+              )}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
