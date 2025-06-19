@@ -13,6 +13,7 @@ import AppInfoDialog from "@/components/spendwise/AppInfoDialog";
 import ReleaseNotesDialog from "@/components/spendwise/release-notes-dialog";
 import SpendWiseBot from "@/components/spendwise/spendwise-bot";
 import { loadDataFromTADA, testTADAConnection } from '@/components/spendwise/tadaDataService';
+import { uploadDataToTADA, generateAnalysisId, type UploadProgress } from '@/components/services/tadaUploadService'; // Added: Step 1
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -22,7 +23,7 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "@/context/theme-provider";
 import { useToast } from "@/hooks/use-toast";
-import { Package, Building, Building2, ArrowRightLeft, FolderTree, Sun, Moon, Sparkles, Loader2, Briefcase, Users, DollarSignIcon, Globe, Shield, Lightbulb, MessageCircle, Wand2, FileX2, ArrowUpToLine, ArrowDownToLine, FileSpreadsheet, HelpCircle, Home, Info, CheckCircle, ListChecks, Search, ExternalLink, AlertTriangle, BarChart3, FileText, Maximize2, Minimize2 } from "lucide-react";
+import { Package, Building, Building2, ArrowRightLeft, FolderTree, Sun, Moon, Sparkles, Loader2, Briefcase, Users, DollarSignIcon, Globe, Shield, Lightbulb, MessageCircle, Wand2, FileX2, ArrowUpToLine, ArrowDownToLine, FileSpreadsheet, HelpCircle, Home, Info, CheckCircle, ListChecks, Search, ExternalLink, AlertTriangle, BarChart3, FileText, Maximize2, Minimize2, CloudUpload } from "lucide-react"; // Added: CloudUpload (Step 2)
 import type { Part, Supplier, PartCategoryMapping, PartSupplierAssociation } from '@/types/spendwise';
 import { generateSpendData } from '@/ai/flows/generate-spend-data-flow';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -85,6 +86,12 @@ export default function SpendWiseCentralPage() {
   const [isUploadingExcel, setIsUploadingExcel] = useState(false);
   const [isLoadingSampleData, setIsLoadingSampleData] = useState(false);
   const [isLoadingFromTADA, setIsLoadingFromTADA] = useState(false);
+  // Added: Step 3
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [currentScenarioId, setCurrentScenarioId] = useState<string>('');
+  const [scenarios, setScenarios] = useState<{id: string, name: string, timestamp: Date}[]>([]);
+
 
   const [tariffRateMultiplierPercent, setTariffRateMultiplierPercent] = useState(100);
   const [totalLogisticsCostPercent, setTotalLogisticsCostPercent] = useState(100);
@@ -94,7 +101,7 @@ export default function SpendWiseCentralPage() {
   const [currentFilename, setCurrentFilename] = useState<string>(DEFAULT_XML_FILENAME);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formattedDateTime, setFormattedDateTime] = useState<string>('');
-
+  const [showScenariosList, setShowScenariosList] = useState(false); // Set to false so it starts hidden
   const [appHomeCountry, setAppHomeCountry] = useState<string>(DEFAULT_HOME_COUNTRY);
   const [appCurrency, setAppCurrency] = useState<CurrencyInfo>(() => {
     if (typeof window === 'undefined') {
@@ -373,6 +380,70 @@ export default function SpendWiseCentralPage() {
     URL.revokeObjectURL(url);
     toast({ title: "Success", description: `${currentFilename} downloaded.` });
   };
+
+  // Added: Step 4
+  const handleUploadToTADA = async () => {
+    if (!parts.length || !suppliers.length || !partSupplierAssociations.length) {
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: "No data available to upload. Please load data first." 
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(null);
+    
+    try {
+      // Generate unique Scenario ID
+      const scenarioId = generateAnalysisId('1'); // You can pass actual user ID here
+      setCurrentScenarioId(scenarioId);
+      
+      // Add to scenarios list
+      setScenarios(prev => [...prev, {
+        id: scenarioId,
+        name: `Scenario ${prev.length + 1}`,
+        timestamp: new Date()
+      }]);
+      
+      console.log(`[Upload] Starting upload with Scenario ID: ${scenarioId}`);
+      
+      const result = await uploadDataToTADA(
+        parts,
+        suppliers,
+        partSupplierAssociations,
+        scenarioId,
+        'USER1', // You can pass actual user ID here
+        (progress) => setUploadProgress(progress)
+      );
+      
+      if (result.success) {
+        toast({ 
+          title: "Success", 
+          description: `Scenario uploaded successfully! ID: ${result.analysisId}` 
+        });
+      } else {
+        toast({ 
+          variant: "destructive", 
+          title: "Upload Failed", 
+          description: `Upload completed with ${result.errors.length} errors.` 
+        });
+      }
+    } catch (error) {
+      console.error('[Upload] Error:', error);
+      toast({ 
+        variant: "destructive", 
+        title: "Upload Failed", 
+        description: error instanceof Error ? error.message : "Unknown error occurred" 
+      });
+    } finally {
+      setIsUploading(false);
+      setTimeout(() => setUploadProgress(null), 3000);
+    }
+  };
+
+
 
   const handleLoadButtonClick = () => {
     fileInputRef.current?.click();
@@ -1336,6 +1407,29 @@ export default function SpendWiseCentralPage() {
                   <p>Download Configuration (XML)</p>
                 </TooltipContent>
               </Tooltip>
+              {/* Added: Step 5 - Upload Button */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={handleUploadToTADA} 
+                    disabled={!parts.length || isUploading}
+                    variant="outline"
+                    size="icon"
+                    aria-label={isUploading ? 'Uploading Scenario...' : 'Create New Scenario'}
+                    className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900 dark:hover:bg-blue-800 border-blue-200 dark:border-blue-700"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" />
+                    ) : (
+                      <CloudUpload className="h-5 w-5 text-blue-600 dark:text-blue-400" /> 
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isUploading ? 'Uploading Scenario...' : 'Upload Data to TADA'}</p>
+                </TooltipContent>
+              </Tooltip>
+
               <Select value={theme} onValueChange={(value) => setTheme(value as 'light' | 'dark' | 'tada')}>
                 <SelectTrigger className="w-[40px] px-2" aria-label="Select Theme">
                   <SelectValue />
@@ -1743,10 +1837,76 @@ export default function SpendWiseCentralPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
-    </TooltipProvider>
-  );
-}
+
+        {/* Added: Step 6 - Upload Progress Indicator */}
+        {uploadProgress && (
+          <div className="fixed bottom-16 right-4 z-[100]"> {/* Ensure it's above footer and other fixed elements */}
+            <Card className="w-96 shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">
+                  {isUploading ? 'Creating Scenario...' : 'Scenario Created'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">{uploadProgress.currentStep}</p>
+                  <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${(uploadProgress.processedRecords / uploadProgress.totalRecords) * 100}%` 
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {uploadProgress.processedRecords} / {uploadProgress.totalRecords} records
+                  </p>
+                  {currentScenarioId && (
+                    <p className="text-xs font-mono bg-gray-100 dark:bg-gray-800 p-1 rounded">
+                      Scenario ID: {currentScenarioId}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Added: Step 7 - Scenarios List */}
+        {scenarios.length > 0 && showScenariosList && (
+          <div className="fixed top-20 right-4 z-[90]">
+            <Card className="w-64 max-h-[300px] shadow-lg">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm">Created Scenarios</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowScenariosList(false)}
+                  className="h-6 w-6 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[200px]">
+                  <div className="space-y-1">
+                    {scenarios.map((scenario) => (
+                      <div key={scenario.id} className="text-xs p-1.5 bg-muted/50 rounded border">
+                        <div className="font-semibold">{scenario.name}</div>
+                        <div className="text-muted-foreground text-[10px] break-all">{scenario.id}</div>
+                        <div className="text-muted-foreground text-[10px]">{scenario.timestamp.toLocaleString()}</div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+              </div>
+          </TooltipProvider>
+        );
+      }
 
 
 interface ValidationSectionProps<T> {
@@ -1786,7 +1946,7 @@ function ValidationSection<T>({
         </div>
       </div>
       {data.length === 0 ? (
-         <p className="text-xs text-green-600 flex items-center"><CheckCircle className="mr-2 h-3.5 w-3.5"/>{emptyMessage}</p>
+         <p className="text-xs text-green-600 dark:text-green-400 flex items-center"><CheckCircle className="mr-2 h-3.5 w-3.5"/>{emptyMessage}</p>
       ) : (
         <ScrollArea className="h-32 border rounded-md p-2 bg-muted/20">
           <ul className={`space-y-1 ${isGrouped ? 'divide-y divide-border' : ''}`}>
