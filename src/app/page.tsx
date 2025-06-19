@@ -23,7 +23,18 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "@/context/theme-provider";
 import { useToast } from "@/hooks/use-toast";
-import { Package, Building, Building2, ArrowRightLeft, FolderTree, Sun, Moon, Sparkles, Loader2, Briefcase, Users, DollarSignIcon, Globe, Shield, Lightbulb, MessageCircle, Wand2, FileX2, ArrowUpToLine, ArrowDownToLine, FileSpreadsheet, HelpCircle, Home, Info, CheckCircle, ListChecks, Search, ExternalLink, AlertTriangle, BarChart3, FileText, Maximize2, Minimize2, CloudUpload } from "lucide-react"; // Added: CloudUpload (Step 2)
+import { 
+  Package, Building, Building2, ArrowRightLeft, FolderTree, Sun, Moon, Sparkles, Loader2, Briefcase, Users, 
+  DollarSignIcon, Globe, Shield, Lightbulb, MessageCircle, Wand2, FileX2, ArrowUpToLine, ArrowDownToLine, 
+  FileSpreadsheet, HelpCircle, Home, Info, CheckCircle, ListChecks, Search, ExternalLink, AlertTriangle, 
+  BarChart3, FileText, Maximize2, Minimize2, CloudUpload, ChevronDown, X // Added ChevronDown, X
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"; // Added DropdownMenu imports
 import type { Part, Supplier, PartCategoryMapping, PartSupplierAssociation } from '@/types/spendwise';
 import { generateSpendData } from '@/ai/flows/generate-spend-data-flow';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -32,7 +43,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import * as XLSX from 'xlsx';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { getCurrencyConfig, CURRENCY_CONFIG } from '@/lib/currencyConfig';
+import { getCurrencyConfig, CURRENCY_CONFIG, CurrencyInfo } from '@/lib/currencyConfig'; // Added CurrencyInfo
 import ManageWorkspaceTab from "@/components/spendwise/manage-workspace-tab";
 
 
@@ -86,7 +97,6 @@ export default function SpendWiseCentralPage() {
   const [isUploadingExcel, setIsUploadingExcel] = useState(false);
   const [isLoadingSampleData, setIsLoadingSampleData] = useState(false);
   const [isLoadingFromTADA, setIsLoadingFromTADA] = useState(false);
-  // Added: Step 3
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [currentScenarioId, setCurrentScenarioId] = useState<string>('');
@@ -105,16 +115,13 @@ export default function SpendWiseCentralPage() {
   const [appHomeCountry, setAppHomeCountry] = useState<string>(DEFAULT_HOME_COUNTRY);
   const [appCurrency, setAppCurrency] = useState<CurrencyInfo>(() => {
     if (typeof window === 'undefined') {
-      // Server-side: return a default value
       return { code: 'USD', symbol: '$', rate: 1.00, locale: 'en-US' };
     }
     return getCurrencyConfig(DEFAULT_HOME_COUNTRY);
   });
 
-  // Auto-geocoding hook
   useAutoGeocode({ suppliers, setSuppliers, enabled: true });
 
-  // State for validation results
   const [validationPerformed, setValidationPerformed] = useState<boolean>(false);
   const [partsWithoutSuppliers, setPartsWithoutSuppliers] = useState<Part[]>([]);
   const [suppliersWithoutParts, setSuppliersWithoutParts] = useState<Supplier[]>([]);
@@ -127,7 +134,6 @@ export default function SpendWiseCentralPage() {
   const [singleSourceParts, setSingleSourceParts] = useState<Part[]>([]);
 
 
-  // State for search terms in validation tab
   const [searchTermPartsWithoutSuppliers, setSearchTermPartsWithoutSuppliers] = useState('');
   const [searchTermSuppliersWithoutParts, setSearchTermSuppliersWithoutParts] = useState('');
   const [searchTermDuplicatePartsId, setSearchTermDuplicatePartsId] = useState('');
@@ -214,10 +220,9 @@ export default function SpendWiseCentralPage() {
 
   const parseAndSetXmlData = useCallback((xmlString: string, filename: string) => {
       try {
-        // Clean up common XML issues before parsing
         const cleanedXml = xmlString
-          .replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, '&') // Fix unescaped &
-          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''); // Remove control characters
+          .replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, '&')
+          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(cleanedXml, "application/xml");
@@ -323,7 +328,7 @@ export default function SpendWiseCentralPage() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [parseAndSetXmlData]);
+  }, [parseAndSetXmlData]); // handleLoadSampleData removed to avoid re-triggering on its change. initial load logic.
 
   useEffect(() => {
     let xmlStringGen = '<SpendData>\n';
@@ -381,7 +386,6 @@ export default function SpendWiseCentralPage() {
     toast({ title: "Success", description: `${currentFilename} downloaded.` });
   };
 
-  // Added: Step 4
   const handleUploadToTADA = async () => {
     if (!parts.length || !suppliers.length || !partSupplierAssociations.length) {
       toast({ 
@@ -396,16 +400,15 @@ export default function SpendWiseCentralPage() {
     setUploadProgress(null);
     
     try {
-      // Generate unique Scenario ID
-      const scenarioId = generateAnalysisId('1'); // You can pass actual user ID here
+      const scenarioId = generateAnalysisId('1'); 
       setCurrentScenarioId(scenarioId);
       
-      // Add to scenarios list
       setScenarios(prev => [...prev, {
         id: scenarioId,
         name: `Scenario ${prev.length + 1}`,
         timestamp: new Date()
       }]);
+      setShowScenariosList(true); // Show the list when a new scenario is created.
       
       console.log(`[Upload] Starting upload with Scenario ID: ${scenarioId}`);
       
@@ -414,7 +417,7 @@ export default function SpendWiseCentralPage() {
         suppliers,
         partSupplierAssociations,
         scenarioId,
-        'USER1', // You can pass actual user ID here
+        'USER1',
         (progress) => setUploadProgress(progress)
       );
       
@@ -439,7 +442,7 @@ export default function SpendWiseCentralPage() {
       });
     } finally {
       setIsUploading(false);
-      setTimeout(() => setUploadProgress(null), 3000);
+      setTimeout(() => setUploadProgress(null), 5000); // Keep progress visible a bit longer
     }
   };
 
@@ -570,7 +573,6 @@ export default function SpendWiseCentralPage() {
     }
   }, [toast]);
 
-  // Listen for fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -662,7 +664,7 @@ export default function SpendWiseCentralPage() {
             if (typeof freightOhdCostRaw === 'string' && freightOhdCostRaw.includes('%')) {
                 freightOhdCost = parseFloat(freightOhdCostRaw.replace('%','')) / 100;
             } else {
-                freightOhdCost = parseFloat(freightOhdCostRaw) / 100;
+                freightOhdCost = parseFloat(freightOhdCostRaw) / 100; // Assuming it's a percentage if not explicitly %
             }
 
             if (!partNumber || !name || isNaN(price) || isNaN(annualDemand) || isNaN(freightOhdCost)) {
@@ -696,7 +698,6 @@ export default function SpendWiseCentralPage() {
             }
             const fullAddress = [streetAddress, city, stateOrProvince, postalCode, country].filter(Boolean).join(', ');
 
-            // Don't set coordinates for new suppliers - let auto-geocoding handle it
             newSuppliersArr.push({
               id: `s_excel_${Date.now()}_${index}`,
               supplierId,
@@ -736,9 +737,6 @@ export default function SpendWiseCentralPage() {
         });
       }
 
-
-
-    // NEW: Process Parts Categories sheet
     const partsCategoriesSheetName = findActualSheetName(['Parts Categories', 'PartCategories', 'PARTS CATEGORIES', 'parts categories', 'Part Categories']);
     if (partsCategoriesSheetName) {
       const categoriesData = XLSX.utils.sheet_to_json(workbook.Sheets[partsCategoriesSheetName]);
@@ -759,11 +757,10 @@ export default function SpendWiseCentralPage() {
             return;
           }
 
-          // Check if this mapping already exists
           const exists = partCategoryMappings.some(m => m.partId === foundPart.id && m.categoryName === categoryName) ||
                         newCategoryMappings.some(m => m.partId === foundPart.id && m.categoryName === categoryName);
           if (exists) {
-            errors.push(`Categories Row ${index + 2}: Mapping between "${partNumber}" and "${categoryName}" already exists. Skipped.`);
+            // errors.push(`Categories Row ${index + 2}: Mapping between "${partNumber}" and "${categoryName}" already exists. Skipped.`); // Optionally inform about skips
             return;
           }
 
@@ -778,9 +775,10 @@ export default function SpendWiseCentralPage() {
       });
     }
 
-    if (newPartsArr.length > 0) setParts(prev => [...prev, ...newPartsArr]);      if (newSuppliersArr.length > 0) setSuppliers(prev => [...prev, ...newSuppliersArr]);
-      if (newAssociations.length > 0) setPartSupplierAssociations(prev => [...prev, ...newAssociations]);
-          if (newCategoryMappings.length > 0) setPartCategoryMappings(prev => [...prev, ...newCategoryMappings]); // NEW: Update categories
+    if (newPartsArr.length > 0) setParts(prev => [...prev, ...newPartsArr]);      
+    if (newSuppliersArr.length > 0) setSuppliers(prev => [...prev, ...newSuppliersArr]);
+    if (newAssociations.length > 0) setPartSupplierAssociations(prev => [...prev, ...newAssociations]);
+    if (newCategoryMappings.length > 0) setPartCategoryMappings(prev => [...prev, ...newCategoryMappings]);
 
 
       const successMessage = `Successfully imported: ${newPartsArr.length} parts, ${newSuppliersArr.length} suppliers, ${newAssociations.length} associations, ${newCategoryMappings.length} category mappings.`;
@@ -834,16 +832,13 @@ export default function SpendWiseCentralPage() {
     try {
       console.log('[App] Starting TADA data load...');
 
-      // Test connection first
       const isConnected = await testTADAConnection();
       if (!isConnected) {
         throw new Error('Unable to connect to TADA');
       }
 
-      // Load data
       const tadaData = await loadDataFromTADA();
 
-      // Set data in application
       setParts(tadaData.parts);
       setSuppliers(tadaData.suppliers);
       setPartCategoryMappings(tadaData.partCategoryMappings);
@@ -947,23 +942,20 @@ export default function SpendWiseCentralPage() {
   }, [partsWithSpend]);
 
   const formatCurrencyDisplay = useCallback((value: number) => {
-    // Ensure consistent formatting between server and client
     if (typeof window === 'undefined') {
-      // Server-side: return a simple format
       if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(2)}B`;
       if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
       if (value >= 1_000) return `$${(value / 1_000).toFixed(2)}K`;
       return `$${value.toFixed(2)}`;
     }
 
-    // Client-side: use full formatting
     const convertedValue = value * appCurrency.rate;
     const formatted = new Intl.NumberFormat(appCurrency.locale, {
       style: 'currency',
       currency: appCurrency.code,
       notation: 'compact',
       maximumFractionDigits: 2,
-      minimumFractionDigits: 2, // Add this for consistency
+      minimumFractionDigits: 2,
     }).format(convertedValue);
     return formatted;
   }, [appCurrency]);
@@ -1018,7 +1010,7 @@ export default function SpendWiseCentralPage() {
         handleLoadSampleData();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // Only on mount
 
   const handleTariffSliderChange = useCallback((value: number[]) => {
     setTariffRateMultiplierPercent(value[0]);
@@ -1035,19 +1027,16 @@ export default function SpendWiseCentralPage() {
 
 
   const handleRunValidationChecks = useCallback(() => {
-    // 1. Parts without Suppliers
     const partsMissingSuppliers = parts.filter(part =>
       !partSupplierAssociations.some(assoc => assoc.partId === part.id)
     );
     setPartsWithoutSuppliers(partsMissingSuppliers);
 
-    // 2. Suppliers without Parts
     const suppliersMissingParts = suppliers.filter(supplier =>
       !partSupplierAssociations.some(assoc => assoc.supplierId === supplier.id)
     );
     setSuppliersWithoutParts(suppliersMissingParts);
 
-    // 3. Duplicate Parts by Internal ID
     const partsByIdGroupsInternal = parts.reduce((acc, part) => {
       acc[part.id] = acc[part.id] || [];
       acc[part.id].push(part);
@@ -1059,7 +1048,6 @@ export default function SpendWiseCentralPage() {
         .map(([id, items]) => ({ id, items }))
     );
 
-    // 4. Duplicate Parts by PartNumber
     const partsByNumberGroups = parts.reduce((acc, part) => {
       acc[part.partNumber] = acc[part.partNumber] || [];
       acc[part.partNumber].push(part);
@@ -1071,7 +1059,6 @@ export default function SpendWiseCentralPage() {
         .map(([partNumber, items]) => ({ partNumber, items }))
     );
 
-    // 5. Duplicate Parts by Name
     const partsByNameGroups = parts.reduce((acc, part) => {
       acc[part.name] = acc[part.name] || [];
       acc[part.name].push(part);
@@ -1083,7 +1070,6 @@ export default function SpendWiseCentralPage() {
         .map(([name, items]) => ({ name, items }))
     );
 
-    // 6. Duplicate Suppliers by SupplierId
     const suppliersByIdGroups = suppliers.reduce((acc, supplier) => {
       acc[supplier.supplierId] = acc[supplier.supplierId] || [];
       acc[supplier.supplierId].push(supplier);
@@ -1095,7 +1081,6 @@ export default function SpendWiseCentralPage() {
         .map(([supplierId, items]) => ({ supplierId, items }))
     );
 
-    // 7. Duplicate Suppliers by Name
     const suppliersByNameGroups = suppliers.reduce((acc, supplier) => {
       acc[supplier.name] = acc[supplier.name] || [];
       acc[supplier.name].push(supplier);
@@ -1107,7 +1092,6 @@ export default function SpendWiseCentralPage() {
         .map(([name, items]) => ({ name, items }))
     );
 
-    // 8. Case Insensitive Duplicate Categories
     const uniqueCatNames = Array.from(new Set(partCategoryMappings.map(m => m.categoryName)));
     const categoryLowercaseMap = uniqueCatNames.reduce((acc, name) => {
         const lowerName = name.toLowerCase();
@@ -1121,7 +1105,6 @@ export default function SpendWiseCentralPage() {
             .map(([lowerName, variations]) => ({ name: lowerName, variations }))
     );
 
-    // 9. Single-Source Parts
     const singleSource = parts.filter(part => {
       const supplierCount = partSupplierAssociations.filter(assoc => assoc.partId === part.id).length;
       return supplierCount === 1;
@@ -1323,28 +1306,7 @@ export default function SpendWiseCentralPage() {
                   <p>Load Sample Data</p>
                 </TooltipContent>
               </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleLoadFromTADA}
-                    disabled={isLoadingFromTADA || isUploadingExcel}
-                    aria-label="Load from TADA"
-                    className="bg-purple-50 hover:bg-purple-100 dark:bg-purple-900 dark:hover:bg-purple-800 border-purple-200 dark:border-purple-700"
-                  >
-                    {isLoadingFromTADA ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-purple-600 dark:text-purple-400" />
-                    ) : (
-                      <Globe className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Load from TADA</p>
-                </TooltipContent>
-              </Tooltip>
-
+              
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="icon" onClick={() => setIsExcelUploadDialogOpen(true)} disabled={isUploadingExcel || isLoadingSampleData} aria-label="Upload Excel Workbook">
@@ -1359,6 +1321,62 @@ export default function SpendWiseCentralPage() {
                   <p>Upload Excel Workbook (Parts, Suppliers, Mix)</p>
                 </TooltipContent>
               </Tooltip>
+
+              {/* TADA Operations Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="bg-purple-50 hover:bg-purple-100 dark:bg-purple-900 dark:hover:bg-purple-800 border-purple-200 dark:border-purple-700"
+                    disabled={isLoadingFromTADA || isUploading}
+                  >
+                    <Globe className="h-4 w-4 mr-1 text-purple-600 dark:text-purple-400" />
+                    TADA
+                    <ChevronDown className="h-3 w-3 ml-1 text-purple-600 dark:text-purple-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem 
+                    onClick={handleLoadFromTADA}
+                    disabled={isLoadingFromTADA || isUploadingExcel}
+                  >
+                    <Globe className="mr-2 h-4 w-4" />
+                    Load from TADA
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={handleUploadToTADA}
+                    disabled={!parts.length || isUploading}
+                  >
+                    <CloudUpload className="mr-2 h-4 w-4" />
+                    Upload Data to TADA
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* File Operations Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                  >
+                    <FileText className="h-4 w-4 mr-1" />
+                    Files
+                    <ChevronDown className="h-3 w-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={handleLoadButtonClick}>
+                    <ArrowUpToLine className="mr-2 h-4 w-4" />
+                    Upload XML
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDownloadXml}>
+                    <ArrowDownToLine className="mr-2 h-4 w-4" />
+                    Download XML
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
                <SpendWiseBot
                 parts={parts}
@@ -1383,50 +1401,6 @@ export default function SpendWiseCentralPage() {
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Clear All Application Data</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" onClick={handleLoadButtonClick} aria-label="Load Configuration XML">
-                    <ArrowUpToLine className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Load Configuration (XML)</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" onClick={handleDownloadXml} aria-label="Download Configuration XML">
-                    <ArrowDownToLine className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Download Configuration (XML)</p>
-                </TooltipContent>
-              </Tooltip>
-              {/* Added: Step 5 - Upload Button */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    onClick={handleUploadToTADA} 
-                    disabled={!parts.length || isUploading}
-                    variant="outline"
-                    size="icon"
-                    aria-label={isUploading ? 'Uploading Scenario...' : 'Create New Scenario'}
-                    className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900 dark:hover:bg-blue-800 border-blue-200 dark:border-blue-700"
-                  >
-                    {isUploading ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" />
-                    ) : (
-                      <CloudUpload className="h-5 w-5 text-blue-600 dark:text-blue-400" /> 
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{isUploading ? 'Uploading Scenario...' : 'Upload Data to TADA'}</p>
                 </TooltipContent>
               </Tooltip>
 
@@ -1838,9 +1812,8 @@ export default function SpendWiseCentralPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Added: Step 6 - Upload Progress Indicator */}
         {uploadProgress && (
-          <div className="fixed bottom-16 right-4 z-[100]"> {/* Ensure it's above footer and other fixed elements */}
+          <div className="fixed bottom-16 right-4 z-[100]">
             <Card className="w-96 shadow-lg">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm">
@@ -1854,7 +1827,7 @@ export default function SpendWiseCentralPage() {
                     <div 
                       className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                       style={{ 
-                        width: `${(uploadProgress.processedRecords / uploadProgress.totalRecords) * 100}%` 
+                        width: `${(uploadProgress.processedRecords / Math.max(1, uploadProgress.totalRecords)) * 100}%` // Avoid division by zero
                       }}
                     />
                   </div>
@@ -1872,7 +1845,6 @@ export default function SpendWiseCentralPage() {
           </div>
         )}
 
-        {/* Added: Step 7 - Scenarios List */}
         {scenarios.length > 0 && showScenariosList && (
           <div className="fixed top-20 right-4 z-[90]">
             <Card className="w-64 max-h-[300px] shadow-lg">
@@ -1914,7 +1886,7 @@ interface ValidationSectionProps<T> {
   data: T[];
   searchTerm: string;
   onSearchTermChange: (term: string) => void;
-  renderItem: (item: T) => React.ReactNode;
+  renderItem: (item: T, index: number) => React.ReactNode; // Added index
   emptyMessage: string;
   searchPlaceholder: string;
   isGrouped?: boolean;
@@ -1950,7 +1922,7 @@ function ValidationSection<T>({
       ) : (
         <ScrollArea className="h-32 border rounded-md p-2 bg-muted/20">
           <ul className={`space-y-1 ${isGrouped ? 'divide-y divide-border' : ''}`}>
-            {data.map((item, index) => renderItem(item))}
+            {data.map((item, index) => renderItem(item, index))} {/* Pass index */}
           </ul>
         </ScrollArea>
       )}
