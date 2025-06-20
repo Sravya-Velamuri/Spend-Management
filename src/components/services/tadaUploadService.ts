@@ -14,7 +14,7 @@ const TOKENS = {
 };
 
 // Fallback key from download service
-const FALLBACK_KEY = '1J6LLsxGsGrSsuSogoHyFdxeTbbAuL2aqndoXDpXGWrSAn547zaCBHtNG-MJlHh90YnNuUdjfaaAhHq58wg2e8oGZ9qJJC8ocTcIslGkXOxafxG6M6MjZgge7Ubd8y7q';
+const FALLBACK_KEY = '1J6LLsxGsGrSsuSogoHyFUlqUM0dMMQ80uUBu6gVrZ7aDJt2cS0IY5Gh9jX77lEbrjG6pa59IfVCnC-QOvswH19SxbEcGnYfQqXR994HpqbyX2aLS7PZkhI3nlriwkut';
 
 // Interface for upload progress tracking
 export interface UploadProgress {
