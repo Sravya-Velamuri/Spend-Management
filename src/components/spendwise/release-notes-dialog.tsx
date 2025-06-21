@@ -24,7 +24,7 @@ export default function ReleaseNotesDialog({ isOpen, onClose }: ReleaseNotesDial
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <Sparkles className="mr-2 h-5 w-5 text-primary" />
-            Release Notes - Version 2R25.6.12.1
+            Release Notes - Version 2R25.6.20.1
           </DialogTitle>
           <DialogDescription>
             Latest updates and improvements to Spend by TADA
@@ -32,46 +32,64 @@ export default function ReleaseNotesDialog({ isOpen, onClose }: ReleaseNotesDial
         </DialogHeader>
         <ScrollArea className="max-h-[60vh] pr-4">
           <div className="prose prose-sm dark:prose-invert max-w-none">
-            <p>This release includes several enhancements and new features to improve your spend analysis capabilities.</p>
-            <h4>Key Changes:</h4>
+            <p>This release includes UI reorganization and improvements to enhance usability and workflow.</p>
+            
+            <h4>Header Toolbar Reorganization:</h4>
             <ul>
-              <li><strong>New Tab: "Review Spend" (Tab 7):</strong> Added a dedicated tab for reviewing spend summaries with dynamic filtering capabilities for parts, suppliers, and categories. Charts for spend and demand by various dimensions are included.</li>
-              <li><strong>New Tab: "Release Notes" (Tab 8):</strong> You are here! This tab will keep you informed about the latest updates.</li>
-              <li><strong>Enhanced "Validate Spend Network" Tab (Tab 5):</strong>
+              <li><strong>Reorganized Button Layout:</strong>
                 <ul>
-                  <li>Validation sections are now numbered (A, B, C...).</li>
-                  <li>Added a check for "Single-Source Parts".</li>
-                  <li>Added a check for "Duplicate Parts by Internal ID".</li>
-                  <li>Search functionality added to all validation lists.</li>
-                  <li>"Validate Spend" tab renamed to "Validate Spend Network".</li>
-                  <li>Added a "Run Validation Checks" button directly within this tab.</li>
+                  <li>Info button (ℹ️) moved to the first position for easy access to application information</li>
+                  <li>Fullscreen toggle relocated near the end of the toolbar, just before the Clear button</li>
                 </ul>
               </li>
-              <li><strong>"What-if Analysis" Tab (Tab 6) Refactor:</strong>
+              <li><strong>TADA Dropdown Enhanced:</strong> Consolidated into a comprehensive dropdown menu with 5 options:
                 <ul>
-                  <li>Reorganized into a three-column layout for better clarity: Controls, Scenario Management/Description, and Impact Summary.</li>
-                  <li>"Applied What-if Parameters" card moved to the middle column.</li>
+                  <li>Upload to TADA</li>
+                  <li>Download from TADA</li>
+                  <li>Files Upload (previously in separate Files dropdown)</li>
+                  <li>Files Download (previously in separate Files dropdown)</li>
+                  <li>Release Notes (moved from standalone button)</li>
                 </ul>
               </li>
-              <li><strong>"Update Source Mix" Tab (Tab 3) Enhancements:</strong>
+              <li><strong>Excel Operations Unified:</strong> Combined the separate "Load Sample Data" and "Upload Excel" buttons into a single dropdown for cleaner interface</li>
+              <li><strong>Removed Redundant Elements:</strong>
                 <ul>
-                  <li>Added search bars above "Available Parts" and "Available Suppliers" lists.</li>
-                  <li>Removed the "Quick Start" button.</li>
-                  <li>Renamed "Mapped Relationships" column to "Source Network".</li>
-                </ul>
-              </li>
-              <li><strong>Application Information Dialog:</strong> Added an "Info" button in the header to launch a dialog explaining the app's purpose and basic usage.</li>
-              <li><strong>UI & UX Improvements:</strong>
-                <ul>
-                  <li>Header layout adjusted to group Home Country and Tariff Multiplier.</li>
-                  <li>"Top 10 Parts by Spend" pie chart removed from the "Update Parts" tab (Tab 1) for a cleaner interface.</li>
-                  <li>Fixed runtime error related to empty value prop in Select.Item component.</li>
-                  <li>Fixed "Label not defined" error by adding the correct import.</li>
-                  <li>Tab titles now use `text-xs`, `whitespace-normal`, `justify-start` and a fixed height for improved readability and consistent two-line wrapping.</li>
+                  <li>Standalone Release Notes button removed (now in TADA dropdown)</li>
+                  <li>Files dropdown removed (functionality moved to TADA dropdown)</li>
                 </ul>
               </li>
             </ul>
-            <p>We hope you find these updates helpful!</p>
+
+            <h4>Review Spend Tab Improvements:</h4>
+            <ul>
+              <li><strong>Simplified Filtering:</strong> Streamlined from 3 filters to 2 filters:
+                <ul>
+                  <li>Removed "Filter by Part" to reduce complexity</li>
+                  <li>Retained "Filter by Supplier" and "Filter by Category" for focused analysis</li>
+                  <li>Filter layout changed from 3-column to 2-column grid</li>
+                </ul>
+              </li>
+            </ul>
+
+            <h4>Theme Enhancements:</h4>
+            <ul>
+              <li><strong>Dynamic Logo Support:</strong> Application now displays theme-appropriate logos:
+                <ul>
+                  <li>Light theme: Colored TADA logo</li>
+                  <li>Dark/TADA theme: White TADA logo for better visibility</li>
+                </ul>
+              </li>
+            </ul>
+
+            <h4>Previous Updates:</h4>
+            <ul>
+              <li>Added "Review Spend" tab (Tab 7) with dynamic filtering and visualization capabilities</li>
+              <li>Enhanced "Validate Spend Network" tab with numbered sections and search functionality</li>
+              <li>Reorganized "What-if Analysis" tab into three-column layout</li>
+              <li>Improved "Update Source Mix" tab with search bars and renamed columns</li>
+            </ul>
+
+            <p className="mt-4">These changes improve the application's usability by reducing clutter and organizing related functions together. We hope you enjoy the streamlined interface!</p>
           </div>
         </ScrollArea>
         <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">

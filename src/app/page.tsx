@@ -1181,12 +1181,12 @@ export default function SpendWiseCentralPage() {
       <div className="flex flex-col min-h-screen bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
         <div className="container mx-auto flex h-16 items-center space-x-3 px-4 sm:px-6 lg:px-8">
-          <img
-            src="/TADA_TM-2023_Color-White-Logo.svg"
-            alt="TADA Logo"
-            className="h-14 w-14 object-contain"
-            data-ai-hint="logo company"
-          />
+        <img
+          src={theme === 'light' ? "/TADA_TM-2023_Color-Logo.svg" : "/TADA_TM-2023_Color-White-Logo.svg"}
+          alt="TADA Logo"
+          className="h-22 w-16 object-contain"
+          data-ai-hint="logo company"
+        />
           <h1 className="text-lg font-headline font-semibold text-foreground whitespace-nowrap">
             Spend by TADA
           </h1>
@@ -1255,74 +1255,67 @@ export default function SpendWiseCentralPage() {
               </div>
             </div>
 
+            {/* MODIFIED HEADER BUTTONS SECTION STARTS HERE */}
             <div className="ml-auto flex items-center space-x-2">
+              {/* 1. Info Button */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" onClick={() => setIsAppInfoDialogOpen(true)} aria-label="Application Information">
-                        <Info className="h-5 w-5" />
-                    </Button>
+                  <Button variant="outline" size="icon" onClick={() => setIsAppInfoDialogOpen(true)} aria-label="Application Information">
+                    <Info className="h-5 w-5" />
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent><p>About this Application</p></TooltipContent>
               </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" onClick={() => setIsReleaseNotesDialogOpen(true)} aria-label="Release Notes">
-                        <Sparkles className="h-5 w-5" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>Release Notes</p></TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handleToggleFullscreen}
-                      aria-label={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-                    >
-                        {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>{isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}</p></TooltipContent>
-              </Tooltip>
+
+              {/* 2. Fullscreen Toggle */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={handleLoadSampleData}
-                    disabled={isLoadingSampleData || isUploadingExcel}
-                    aria-label="Load Sample Data"
-                    className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900 dark:hover:bg-blue-800 border-blue-200 dark:border-blue-700"
+                    onClick={handleToggleFullscreen}
+                    aria-label={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
                   >
-                    {isLoadingSampleData ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" />
-                    ) : (
-                      <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    )}
+                    {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Load Sample Data</p>
-                </TooltipContent>
+                <TooltipContent><p>{isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}</p></TooltipContent>
               </Tooltip>
-              
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" onClick={() => setIsExcelUploadDialogOpen(true)} disabled={isUploadingExcel || isLoadingSampleData} aria-label="Upload Excel Workbook">
-                    {isUploadingExcel ? (
+
+              {/* 3. Excel Operations Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    disabled={isLoadingSampleData || isUploadingExcel}
+                  >
+                    {(isLoadingSampleData || isUploadingExcel) ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
                       <FileSpreadsheet className="h-5 w-5" />
                     )}
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Upload Excel Workbook (Parts, Suppliers, Mix)</p>
-                </TooltipContent>
-              </Tooltip>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem 
+                    onClick={handleLoadSampleData}
+                    disabled={isLoadingSampleData || isUploadingExcel}
+                  >
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Load Sample Data
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setIsExcelUploadDialogOpen(true)}
+                    disabled={isUploadingExcel || isLoadingSampleData}
+                  >
+                    <ArrowUpToLine className="mr-2 h-4 w-4" />
+                    Upload Excel Workbook
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-              {/* TADA Operations Dropdown */}
+              {/* 4. TADA Operations Dropdown - Expanded */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
@@ -1338,47 +1331,36 @@ export default function SpendWiseCentralPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem 
-                    onClick={handleLoadFromTADA}
-                    disabled={isLoadingFromTADA || isUploadingExcel}
-                  >
-                    <Globe className="mr-2 h-4 w-4" />
-                    Load from TADA
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
                     onClick={handleUploadToTADA}
                     disabled={!parts.length || isUploading}
                   >
                     <CloudUpload className="mr-2 h-4 w-4" />
-                    Upload Data to TADA
+                    Upload to TADA
                   </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* File Operations Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
+                  <DropdownMenuItem 
+                    onClick={handleLoadFromTADA}
+                    disabled={isLoadingFromTADA || isUploadingExcel}
                   >
-                    <FileText className="h-4 w-4 mr-1" />
-                    Files
-                    <ChevronDown className="h-3 w-3 ml-1" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                    <Globe className="mr-2 h-4 w-4" />
+                    Download from TADA
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLoadButtonClick}>
                     <ArrowUpToLine className="mr-2 h-4 w-4" />
-                    Upload XML
+                    Files Upload
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleDownloadXml}>
                     <ArrowDownToLine className="mr-2 h-4 w-4" />
-                    Download XML
+                    Files Download
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsReleaseNotesDialogOpen(true)}>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Release Notes
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
-               <SpendWiseBot
+              {/* 5. SpendWiseBot */}
+              <SpendWiseBot
                 parts={parts}
                 suppliers={suppliers}
                 partCategoryMappings={partCategoryMappings}
@@ -1393,6 +1375,7 @@ export default function SpendWiseCentralPage() {
               />
               <input type="file" ref={fileInputRef} onChange={handleFileSelected} accept=".xml" style={{ display: 'none' }} />
 
+              {/* 6. Clear All Data button */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="icon" onClick={handleClearAllData} aria-label="Clear All Data">
@@ -1404,6 +1387,7 @@ export default function SpendWiseCentralPage() {
                 </TooltipContent>
               </Tooltip>
 
+              {/* 7. Theme selector */}
               <Select value={theme} onValueChange={(value) => setTheme(value as 'light' | 'dark' | 'tada')}>
                 <SelectTrigger className="w-[40px] px-2" aria-label="Select Theme">
                   <SelectValue />
@@ -1421,6 +1405,7 @@ export default function SpendWiseCentralPage() {
                 </SelectContent>
               </Select>
             </div>
+            {/* MODIFIED HEADER BUTTONS SECTION ENDS HERE */}
           </div>
         </header>
 

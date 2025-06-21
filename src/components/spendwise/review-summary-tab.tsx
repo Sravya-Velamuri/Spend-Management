@@ -67,12 +67,10 @@ export default function ReviewSummaryTab({
   const [loadedScenario, setLoadedScenario] = useState<SavedScenario | null>(null);
   const [savedScenarioNames, setSavedScenarioNames] = useState<string[]>([]);
 
-  const [filterSelectedPartId, setFilterSelectedPartId] = useState<string>(ALL_FILTER_VALUE);
   const [filterSelectedSupplierId, setFilterSelectedSupplierId] = useState<string>(ALL_FILTER_VALUE);
   const [filterSelectedCategory, setFilterSelectedCategory] = useState<string>(ALL_FILTER_VALUE);
 
   const uniqueCategoriesForFilter = useMemo(() => Array.from(new Set(allPartCategoryMappings.map(pcm => pcm.categoryName))).sort(), [allPartCategoryMappings]);
-  const partsForFilterDropdown = useMemo(() => allParts.map(p => ({ value: p.id, label: `${p.partNumber} - ${p.name}` })).sort((a,b) => a.label.localeCompare(b.label)), [allParts]);
   const suppliersForFilterDropdown = useMemo(() => allSuppliers.map(s => ({ value: s.id, label: `${s.supplierId} - ${s.name}` })).sort((a,b) => a.label.localeCompare(b.label)), [allSuppliers]);
 
 
@@ -128,7 +126,7 @@ export default function ReviewSummaryTab({
   const filteredAndCalculatedParts = useMemo(() => {
     let tempFilteredParts = [...allParts];
 
-    if (filterSelectedPartId !== ALL_FILTER_VALUE) {
+    if (filterSelectedCategory !== ALL_FILTER_VALUE) {
       tempFilteredParts = tempFilteredParts.filter(p => p.id === filterSelectedPartId);
     }
 
@@ -155,7 +153,7 @@ export default function ReviewSummaryTab({
         annualSpend: partWithOriginalSpend ? partWithOriginalSpend.annualSpend : 0,
       };
     });
-  }, [allParts, allPartsWithSpend, filterSelectedPartId, filterSelectedCategory, filterSelectedSupplierId, allPartCategoryMappings, allPartSupplierAssociations]);
+  }, [allParts, allPartsWithSpend, filterSelectedCategory, filterSelectedSupplierId, allPartCategoryMappings, allPartSupplierAssociations]);
 
 
   const displayMetrics = useMemo(() => {
@@ -219,19 +217,17 @@ export default function ReviewSummaryTab({
     return [...filteredAndCalculatedParts]
       .sort((a, b) => b.annualSpend - a.annualSpend)
       .slice(0, 5)
-      .map(p => ({ name: p.partNumber, spend: p.annualSpend }));
+      .map(p => ({ name: p.name, spend: p.annualSpend }));
   }, [filteredAndCalculatedParts]);
 
   const currentDemandByTopPartsData: DemandDataPoint[] = useMemo(() => {
     return [...filteredAndCalculatedParts] 
       .sort((a, b) => b.annualDemand - a.annualDemand)
       .slice(0, 5)
-      .map(p => ({ name: p.partNumber, demand: p.annualDemand }));
+      .map(p => ({ name: p.name, demand: p.annualDemand }));
   }, [filteredAndCalculatedParts]);
 
-
   const handleClearFilters = () => {
-    setFilterSelectedPartId(ALL_FILTER_VALUE);
     setFilterSelectedSupplierId(ALL_FILTER_VALUE);
     setFilterSelectedCategory(ALL_FILTER_VALUE);
   };
@@ -284,21 +280,7 @@ export default function ReviewSummaryTab({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-xs">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="filterPartSelect" className="text-xs font-medium">Filter by Part</Label>
-                  <Select value={filterSelectedPartId} onValueChange={setFilterSelectedPartId}>
-                    <SelectTrigger id="filterPartSelect" className="h-8 text-xs mt-1">
-                      <SelectValue placeholder="All Parts" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={ALL_FILTER_VALUE} className="text-xs">All Parts</SelectItem>
-                      {partsForFilterDropdown.map(part => (
-                        <SelectItem key={part.value} value={part.value} className="text-xs">{part.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="filterSupplierSelect" className="text-xs font-medium">Filter by Supplier</Label>
                   <Select value={filterSelectedSupplierId} onValueChange={setFilterSelectedSupplierId}>
@@ -366,7 +348,7 @@ export default function ReviewSummaryTab({
                         <CartesianGrid horizontal={false} strokeDasharray="3 3" />
                         <XAxis type="number" tickFormatter={(value) => formatCurrency(value).replace('$', '')[0] + (Math.abs(value) >= 1e6 ? (value / 1e6).toFixed(0) + 'M' : Math.abs(value) >= 1e3 ? (value / 1e3).toFixed(0) + 'K' : value)} tick={{ fontSize: 10 }} />
                         <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 10 }} />
-                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ fontSize: '10px', padding: '2px 8px' }} />
+                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ fontSize: '11px', padding: '4px 8px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '4px', color: '#000000', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
                         <Bar dataKey="spend" barSize={15} radius={[0, 3, 3, 0]}>
                           {currentSpendByCategoryData.map((entry, index) => (
                             <Cell key={`cell-cat-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
@@ -388,7 +370,7 @@ export default function ReviewSummaryTab({
                         <CartesianGrid horizontal={false} strokeDasharray="3 3" />
                         <XAxis type="number" tickFormatter={(value) => formatCurrency(value).replace('$', '')[0] + (Math.abs(value) >= 1e6 ? (value / 1e6).toFixed(0) + 'M' : Math.abs(value) >= 1e3 ? (value / 1e3).toFixed(0) + 'K' : value)} tick={{ fontSize: 10 }} />
                         <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 10 }} />
-                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ fontSize: '10px', padding: '2px 8px' }} />
+                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ fontSize: '11px', padding: '4px 8px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '4px', color: '#000000', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
                         <Bar dataKey="spend" barSize={15} radius={[0, 3, 3, 0]}>
                           {currentSpendByTopPartsData.map((entry, index) => (
                             <Cell key={`cell-psp-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
@@ -410,7 +392,7 @@ export default function ReviewSummaryTab({
                         <CartesianGrid horizontal={false} strokeDasharray="3 3" />
                         <XAxis type="number" tickFormatter={(value) => formatNumber(value).length > 6 ? (value / 1e6).toFixed(1) + 'M' : (value / 1e3).toFixed(1) + 'K'} tick={{ fontSize: 10 }} />
                         <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 10 }} />
-                        <RechartsTooltip formatter={(value: number) => formatNumber(value) + " units"} contentStyle={{ fontSize: '10px', padding: '2px 8px' }} />
+                        <RechartsTooltip formatter={(value: number) => formatNumber(value) + " units"} contentStyle={{ fontSize: '11px', padding: '4px 8px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '4px', color: '#000000', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
                         <Bar dataKey="demand" barSize={15} radius={[0, 3, 3, 0]}>
                           {currentDemandByTopPartsData.map((entry, index) => (
                             <Cell key={`cell-pdp-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
