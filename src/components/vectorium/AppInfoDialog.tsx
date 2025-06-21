@@ -12,7 +12,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Info, Package, Building, ArrowRightLeft, FolderTree, ListChecks, HelpCircle, BarChart3, Sparkles, Wand2, UploadCloud, FileSpreadsheet, MessageCircle, FileText, TableIcon } from "lucide-react";
+import { Info, Package, Building, ArrowRightLeft, FolderTree, ListChecks, HelpCircle, BarChart3, Sparkles, Wand2, UploadCloud, FileSpreadsheet, MessageCircle, FileText } from "lucide-react";
 
 interface AppInfoDialogProps {
   isOpen: boolean;
@@ -137,7 +137,7 @@ export default function AppInfoDialog({ isOpen, onClose }: AppInfoDialogProps) {
 
                 <section>
                     <h4 className="font-semibold mb-2 text-base flex items-center">
-                        <TableIcon className="inline h-4 w-4 mr-1.5"/> Example Data Formats for Upload
+                        <FileSpreadsheet className="inline h-4 w-4 mr-1.5"/> Example Data Formats for Upload
                     </h4>
                     <div className="space-y-3 text-xs text-muted-foreground">
                         <div>
@@ -189,5 +189,3 @@ export default function AppInfoDialog({ isOpen, onClose }: AppInfoDialogProps) {
     </Dialog>
   );
 }
-
-    
