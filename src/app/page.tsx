@@ -27,7 +27,7 @@ import {
   Package, Building, Building2, ArrowRightLeft, FolderTree, Sun, Moon, Sparkles, Loader2, Briefcase, Users, 
   DollarSignIcon, Globe, Shield, Lightbulb, MessageCircle, Wand2, FileX2, ArrowUpToLine, ArrowDownToLine, 
   FileSpreadsheet, HelpCircle, Home, Info, CheckCircle, ListChecks, Search, ExternalLink, AlertTriangle, 
-  BarChart3, FileText, Maximize2, Minimize2, CloudUpload, ChevronDown, X // Added ChevronDown, X
+  BarChart3, FileText, Maximize2, Minimize2, CloudUpload, ChevronDown, X, Plus, Minus // Added ChevronDown, X, Plus, Minus
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -113,6 +113,7 @@ export default function SpendWiseCentralPage() {
   const [formattedDateTime, setFormattedDateTime] = useState<string>('');
   const [showScenariosList, setShowScenariosList] = useState(false); // Set to false so it starts hidden
   const [appHomeCountry, setAppHomeCountry] = useState<string>(DEFAULT_HOME_COUNTRY);
+  const [zoomLevel, setZoomLevel] = useState<number>(100); // Add zoom state
   const [appCurrency, setAppCurrency] = useState<CurrencyInfo>(() => {
     if (typeof window === 'undefined') {
       return { code: 'USD', symbol: '$', rate: 1.00, locale: 'en-US' };
@@ -189,10 +190,10 @@ export default function SpendWiseCentralPage() {
       const str = String(unsafe);
       // First escape & then other characters to avoid double-escaping
       return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
+        .replace(/&/g, '&')
+        .replace(/</g, '<')
+        .replace(/>/g, '>')
+        .replace(/"/g, '"')
         .replace(/'/g, '&' + 'apos;'); // Split to avoid parsing issues
     }, []);
 
@@ -1016,6 +1017,19 @@ export default function SpendWiseCentralPage() {
     setTariffRateMultiplierPercent(value[0]);
   }, []);
 
+  // Add zoom handlers
+  const handleZoomIn = useCallback(() => {
+    setZoomLevel(prev => Math.min(prev + 10, 200));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoomLevel(prev => Math.max(prev - 10, 50));
+  }, []);
+
+  const handleZoomReset = useCallback(() => {
+    setZoomLevel(100);
+  }, []);
+
   const handleTariffInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(event.target.value, 10);
     if (!isNaN(value) && value >= 0 && value <= 300) {
@@ -1178,7 +1192,15 @@ export default function SpendWiseCentralPage() {
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col min-h-screen bg-background">
+      <div 
+        className="flex flex-col min-h-screen bg-background"
+        style={{ 
+          transform: `scale(${zoomLevel / 100})`,
+          transformOrigin: 'top left',
+          width: `${100 / (zoomLevel / 100)}%`,
+          height: `${100 / (zoomLevel / 100)}vh`
+        }}
+      >
       <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
         <div className="container mx-auto flex h-16 items-center space-x-3 px-4 sm:px-6 lg:px-8">
         <img
@@ -1388,7 +1410,54 @@ export default function SpendWiseCentralPage() {
                 <TooltipContent><p>{isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}</p></TooltipContent>
               </Tooltip>
               
-              {/* 7. Theme selector */}
+              {/* 7. Zoom Controls */}
+              <div className="flex items-center space-x-1 border rounded-md px-2 py-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleZoomOut}
+                      disabled={zoomLevel <= 50}
+                      className="h-7 w-7"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Zoom Out</TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleZoomReset}
+                      className="h-7 px-2 font-mono text-xs"
+                    >
+                      {zoomLevel}%
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Reset Zoom</TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleZoomIn}
+                      disabled={zoomLevel >= 200}
+                      className="h-7 w-7"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Zoom In</TooltipContent>
+                </Tooltip>
+              </div>
+
+              {/* 8. Theme selector */}
               <Select value={theme} onValueChange={(value) => setTheme(value as 'light' | 'dark' | 'tada')}>
                 <SelectTrigger className="w-[40px] px-2" aria-label="Select Theme">
                   <SelectValue />
