@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef } from 'react';
 import type { Part, Supplier, PartSupplierAssociation } from '@/types/spendwise';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,8 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Package, Building, ArrowRightLeft, Info, Trash2, Plus, Target, CheckCircle, Sparkles, Search } from "lucide-react";
+import { 
+  Package, 
+  Building, 
+  ArrowRightLeft, 
+  Info, 
+  Trash2, 
+  // Plus, // Plus was imported but not used, can be removed if not needed elsewhere
+  Target, 
+  // CheckCircle, // CheckCircle was imported but not used
+  // Sparkles, // Sparkles was imported but not used
+  Search,
+  FileSpreadsheet, // Added import
+  Loader2          // Added import
+} from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { parsePartSupplierMappingsExcel } from './excel-parser'; // Added import
 
 interface PartSupplierMappingTabProps {
   parts: Part[];
@@ -21,6 +34,32 @@ interface DragItem {
   type: 'part' | 'supplier';
   data: Part | Supplier;
 }
+
+// Mock excel-parser if it doesn't exist for type-checking and local dev
+// You should replace this with your actual excel-parser.ts content or ensure it exists
+// For example:
+// // ./excel-parser.ts
+// export const parsePartSupplierMappingsExcel = async (
+//   file: File, 
+//   currentAssociations: PartSupplierAssociation[], 
+//   parts: Part[], 
+//   suppliers: Supplier[]
+// ): Promise<{ data: PartSupplierAssociation[], errors: string[] }> => {
+//   console.log("Mock parsePartSupplierMappingsExcel called with file:", file.name);
+//   // Simulate parsing delay
+//   await new Promise(resolve => setTimeout(resolve, 1500));
+//   // Simulate some successful data and some errors
+//   // This is a placeholder, your actual logic will be much more complex
+//   const mockData: PartSupplierAssociation[] = [];
+//   if (parts.length > 0 && suppliers.length > 0 && !currentAssociations.some(a => a.partId === parts[0].id && a.supplierId === suppliers[0].id)) {
+//     mockData.push({ id: `excel_${Date.now()}`, partId: parts[0].id, supplierId: suppliers[0].id });
+//   }
+//   return {
+//     data: mockData,
+//     errors: mockData.length === 0 && parts.length > 0 && suppliers.length > 0 ? ["Mock Error: Could not find new mappings or first mapping already exists."] : [],
+//   };
+// };
+
 
 export default function PartSupplierMappingTab({ 
   parts, 
@@ -36,6 +75,9 @@ export default function PartSupplierMappingTab({
 
   const [searchTermParts, setSearchTermParts] = useState('');
   const [searchTermSuppliers, setSearchTermSuppliers] = useState('');
+
+  // Added state
+  const [isUploadingExcel, setIsUploadingExcel] = useState(false);
 
   const filteredParts = useMemo(() => {
     if (!searchTermParts) return parts;
@@ -54,6 +96,48 @@ export default function PartSupplierMappingTab({
       supplier.supplierId.toLowerCase().includes(lowerSearchTerm)
     );
   }, [suppliers, searchTermSuppliers]);
+
+  // Added ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Added handler
+  const handleExcelUpload = async (file: File) => {
+    setIsUploadingExcel(true);
+    try {
+      const result = await parsePartSupplierMappingsExcel(file, partSupplierAssociations, parts, suppliers);
+      if (result.data.length > 0) {
+        setPartSupplierAssociations(prev => [...prev, ...result.data]);
+        toast({
+          title: "Mappings Imported",
+          description: `Successfully imported ${result.data.length} part-supplier mappings from Excel.`
+        });
+      }
+      if (result.errors.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Import Warnings",
+          description: `${result.errors.length} rows had issues. Check console for details.`
+        });
+        console.error("Excel import errors:", result.errors);
+      }
+      if (result.data.length === 0 && result.errors.length === 0) {
+        toast({
+          title: "No New Mappings",
+          description: "The Excel file did not contain any new part-supplier mappings or all mappings already exist."
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "Failed to process Excel file"
+      });
+      console.error("Excel import process error:", error);
+    } finally {
+      setIsUploadingExcel(false);
+    }
+  };
+
 
   const getPartDisplay = (partId: string) => {
     const part = parts.find(p => p.id === partId);
@@ -202,7 +286,7 @@ export default function PartSupplierMappingTab({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
+            <div className="flex items-center"> {/* Left side: Title, Description, Info Tooltip */}
               <ArrowRightLeft className="mr-2 h-6 w-6" />
               <div>
                 <CardTitle className="text-lg">Source & Mix Parts with Suppliers</CardTitle>
@@ -222,6 +306,35 @@ export default function PartSupplierMappingTab({
                   </p>
                 </TooltipContent>
               </Tooltip>
+            </div>
+            {/* Right side: Added Upload Button and input */}
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingExcel}
+              >
+                {isUploadingExcel ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                )}
+                {isUploadingExcel ? "Uploading..." : "Upload Excel"}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleExcelUpload(file);
+                    e.target.value = ""; // Reset file input to allow re-uploading the same file
+                  }
+                }}
+                style={{ display: 'none' }}
+              />
             </div>
           </div>
         </CardHeader>

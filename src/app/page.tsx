@@ -1267,20 +1267,7 @@ export default function SpendWiseCentralPage() {
                 <TooltipContent><p>About this Application</p></TooltipContent>
               </Tooltip>
 
-              {/* 2. Fullscreen Toggle */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleToggleFullscreen}
-                    aria-label={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-                  >
-                    {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>{isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}</p></TooltipContent>
-              </Tooltip>
+
 
               {/* 3. Excel Operations Dropdown */}
               <DropdownMenu>
@@ -1386,7 +1373,21 @@ export default function SpendWiseCentralPage() {
                   <p>Clear All Application Data</p>
                 </TooltipContent>
               </Tooltip>
-
+              {/* 2. Fullscreen Toggle */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleToggleFullscreen}
+                    aria-label={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                  >
+                    {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>{isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}</p></TooltipContent>
+              </Tooltip>
+              
               {/* 7. Theme selector */}
               <Select value={theme} onValueChange={(value) => setTheme(value as 'light' | 'dark' | 'tada')}>
                 <SelectTrigger className="w-[40px] px-2" aria-label="Select Theme">
