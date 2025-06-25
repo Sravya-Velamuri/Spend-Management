@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { Part, Supplier, PartSupplierAssociation, PartCategoryMapping } from '@/types/spendwise';
@@ -8,14 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
-import { Package, Info, Trash2, Sigma, PlusCircle, Focus, X, TrendingUp, BarChart3, BadgeDollarSign, Boxes, Users2, Tag, ShoppingCart, Banknote } from "lucide-react"; 
+import { Package, Info, Trash2, Sigma, PlusCircle, Focus, X, TrendingUp, BarChart3, BadgeDollarSign, Boxes, Users2, Tag, ShoppingCart, Banknote, FileSpreadsheet, Loader2 } from "lucide-react"; 
 // Bar, BarChart, CartesianGrid, XAxis, YAxis, Legend, ResponsiveContainer, Tooltip as RechartsTooltip removed as chart is removed
 // ChartContainer, ChartTooltip, ChartTooltipContent removed as chart is removed
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Badge } from "@/components/ui/badge";
 import type { CurrencyInfo } from '@/lib/currencyConfig';
+import { parsePartsExcel } from './excel-parser'; // Added import
+import { useToast } from "@/hooks/use-toast"; // Assuming toast is from here
 
 interface UpdatePartsTabProps {
   parts: Part[];
@@ -72,6 +73,9 @@ export default function UpdatePartsTab({
   const [selectedPartId, setSelectedPartId] = useState<string | null>(null);
   const [isPart360Open, setIsPart360Open] = useState(false);
   const [part360Details, setPart360Details] = useState<Part360Details | null>(null);
+  const [isUploadingExcel, setIsUploadingExcel] = useState(false); // Added state
+  const { toast } = useToast(); // Assuming toast is from here
+  const fileInputRef = useRef<HTMLInputElement>(null); // Added ref
 
   const formatCurrency = (value: number, decimals = 0) => {
     const convertedValue = value * appCurrency.rate;
@@ -144,6 +148,37 @@ export default function UpdatePartsTab({
       setSelectedPartId(null);
       setIsPart360Open(false);
       setPart360Details(null);
+    }
+  };
+
+  // Added handler
+  const handleExcelUpload = async (file: File) => {
+    setIsUploadingExcel(true);
+    try {
+      const result = await parsePartsExcel(file, parts);
+      if (result.data.length > 0) {
+        setParts(prev => [...prev, ...result.data]);
+        toast({
+          title: "Parts Imported",
+          description: `Successfully imported ${result.data.length} parts from Excel.`
+        });
+      }
+      if (result.errors.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Import Warnings",
+          description: `${result.errors.length} rows had issues. Check console for details.`
+        });
+        console.error("Excel import errors:", result.errors);
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "Failed to process Excel file"
+      });
+    } finally {
+      setIsUploadingExcel(false);
     }
   };
 
@@ -272,6 +307,34 @@ export default function UpdatePartsTab({
                   <p>Add New Part</p>
                 </TooltipContent>
               </Tooltip>
+              {/* Added JSX for Excel Upload */}
+              <Button
+                variant="outline"
+                size="sm" 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingExcel}
+                className="h-8 px-2" // Adjusted size to match icon button better
+              >
+                {isUploadingExcel ? (
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="h-4 w-4 mr-1.5" />
+                )}
+                <span className="text-xs">{isUploadingExcel ? "Uploading..." : "Upload Excel"}</span>
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleExcelUpload(file);
+                    e.target.value = ""; 
+                  }
+                }}
+                style={{ display: 'none' }}
+              />
             </div>
           </div>
         </CardHeader>
@@ -453,5 +516,3 @@ export default function UpdatePartsTab({
     </div>
   );
 }
-
-    

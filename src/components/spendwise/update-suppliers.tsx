@@ -3,13 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Fingerprint, Building, FileText, PlusCircle, Info, Trash2, Globe2, MapPin, Loader2 } from "lucide-react"; 
+import { Fingerprint, Building, FileText, PlusCircle, Info, Trash2, Globe2, MapPin, Loader2, FileSpreadsheet } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import SupplierWorldMap from './supplier-world-map'; 
+import SupplierWorldMap from './supplier-world-map';
 import { geocodeSupplierAddress } from '@/lib/geocodingService';
 import { useToast } from "@/hooks/use-toast";
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { parseSuppliersExcel } from './excel-parser';
 
 interface UpdateSuppliersTabProps {
   suppliers: Supplier[];
@@ -20,25 +21,27 @@ interface UpdateSuppliersTabProps {
 export default function UpdateSuppliersTab({ suppliers, setSuppliers, onAddSupplier }: UpdateSuppliersTabProps) {
   const { toast } = useToast();
   const [geocodingSupplierId, setGeocodingSupplierId] = useState<string | null>(null);
+  const [isUploadingExcel, setIsUploadingExcel] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSupplierInputChange = (supplierId: string, field: keyof Supplier, value: string | number) => {
     setSuppliers(prevSuppliers =>
       prevSuppliers.map(s => {
         if (s.id === supplierId) {
           const updatedSupplier = { ...s, [field]: value };
-          
+
           if (['city', 'postalCode', 'country', 'streetAddress', 'stateOrProvince'].includes(field as string)) {
             const street = updatedSupplier.streetAddress || '';
             const cityVal = updatedSupplier.city || '';
             const state = updatedSupplier.stateOrProvince || '';
             const postal = updatedSupplier.postalCode || '';
             const countryVal = updatedSupplier.country || '';
-            
+
             let fullAddress = [street, cityVal, state, postal, countryVal]
-              .filter(Boolean) 
+              .filter(Boolean)
               .join(', ');
-            
-            if (state && postal) { 
+
+            if (state && postal) {
                 fullAddress = fullAddress.replace(`${cityVal}, ${state}, ${postal}`, `${cityVal}, ${state} ${postal}`);
             }
             updatedSupplier.address = fullAddress.replace(/ , |, $/g, '').replace(/, ,/g, ',').replace(/  +/g, ' ').trim();
@@ -60,9 +63,9 @@ export default function UpdateSuppliersTab({ suppliers, setSuppliers, onAddSuppl
       // Check if we have enough address info to geocode
       const hasAddressInfo = supplierToGeocode.city || supplierToGeocode.streetAddress || supplierToGeocode.postalCode || supplierToGeocode.country;
       if (!hasAddressInfo) {
-        toast({ 
-          variant: "destructive", 
-          title: "Insufficient Address Info", 
+        toast({
+          variant: "destructive",
+          title: "Insufficient Address Info",
           description: `Cannot geocode ${supplierToGeocode.name}. Please add city, street address, postal code, or country information.`,
           duration: 5000,
         });
@@ -86,8 +89,8 @@ export default function UpdateSuppliersTab({ suppliers, setSuppliers, onAddSuppl
           )
         );
 
-        toast({ 
-          title: "Geocoding Successful", 
+        toast({
+          title: "Geocoding Successful",
           description: `Coordinates found for ${supplierToGeocode.name}: (${result.lat.toFixed(4)}, ${result.lng.toFixed(4)})`,
           duration: 4000,
         });
@@ -111,9 +114,9 @@ export default function UpdateSuppliersTab({ suppliers, setSuppliers, onAddSuppl
           }
         }
 
-        toast({ 
-          variant: "destructive", 
-          title: "Geocoding Failed", 
+        toast({
+          variant: "destructive",
+          title: "Geocoding Failed",
           description: errorMessage,
           duration: 8000,
         });
@@ -122,6 +125,36 @@ export default function UpdateSuppliersTab({ suppliers, setSuppliers, onAddSuppl
         setGeocodingSupplierId(null);
       }
     };
+
+  const handleExcelUpload = async (file: File) => {
+    setIsUploadingExcel(true);
+    try {
+      const result = await parseSuppliersExcel(file, suppliers);
+      if (result.data.length > 0) {
+        setSuppliers(prev => [...prev, ...result.data]);
+        toast({
+          title: "Suppliers Imported",
+          description: `Successfully imported ${result.data.length} suppliers from Excel.`
+        });
+      }
+      if (result.errors.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Import Warnings",
+          description: `${result.errors.length} rows had issues. Check console for details.`
+        });
+        console.error("Excel import errors:", result.errors);
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "Failed to process Excel file"
+      });
+    } finally {
+      setIsUploadingExcel(false);
+    }
+  };
 
 
   return (
@@ -147,10 +180,37 @@ export default function UpdateSuppliersTab({ suppliers, setSuppliers, onAddSuppl
           <section>
             <div className="flex justify-between items-center mb-1.5">
                <h3 className="text-base font-semibold text-muted-foreground">Supplier Details</h3>
-              <div className="flex items-center gap-2 ml-auto"> 
+              <div className="flex items-center gap-2 ml-auto">
                 <Button onClick={onAddSupplier} size="sm" className="text-xs">
                   <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Add New Supplier
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingExcel}
+                  className="text-xs"
+                >
+                  {isUploadingExcel ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  {isUploadingExcel ? "Uploading..." : "Upload Excel"}
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleExcelUpload(file);
+                      e.target.value = ""; // Reset file input
+                    }
+                  }}
+                  style={{ display: 'none' }}
+                />
               </div>
             </div>
             {suppliers.length === 0 ? (
@@ -207,12 +267,12 @@ export default function UpdateSuppliersTab({ suppliers, setSuppliers, onAddSuppl
                         <TableCell className="text-center py-1.5 space-x-1">
                            <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="h-7 w-7"
                                 onClick={() => handleGeocodeSupplier(supplier)}
-                                disabled={geocodingSupplierId === supplier.id || (!supplier.city && !supplier.streetAddress && !supplier.postalCode && !supplier.country)} 
+                                disabled={geocodingSupplierId === supplier.id || (!supplier.city && !supplier.streetAddress && !supplier.postalCode && !supplier.country)}
                                 aria-label="Fetch Coordinates"
                               >
                                 {geocodingSupplierId === supplier.id ? (

@@ -27,7 +27,7 @@ import {
   Package, Building, Building2, ArrowRightLeft, FolderTree, Sun, Moon, Sparkles, Loader2, Briefcase, Users, 
   DollarSignIcon, Globe, Shield, Lightbulb, MessageCircle, Wand2, FileX2, ArrowUpToLine, ArrowDownToLine, 
   FileSpreadsheet, HelpCircle, Home, Info, CheckCircle, ListChecks, Search, ExternalLink, AlertTriangle, 
-  BarChart3, FileText, Maximize2, Minimize2, CloudUpload, ChevronDown, X // Added ChevronDown, X
+  BarChart3, FileText, Maximize2, Minimize2, CloudUpload, ChevronDown, X, Plus, Minus // Added ChevronDown, X, Plus, Minus
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -76,7 +76,7 @@ const TABSLIST_STICKY_TOP_PX = HEADER_HEIGHT_PX + SUMMARY_STATS_HEIGHT_PX;
 
 
 
-type TabValue = "update-parts" | "update-suppliers" | "part-supplier-mapping" | "upload-part-category" | "validate-spend-network" | "what-if-analysis" | "review-summary" | "manage-workspace";
+type TabValue = "update-parts" | "update-suppliers" | "part-supplier-mapping" | "upload-part-category" | "validate-spend-network" | "what-if-analysis" | "review-summary";
 
 export default function SpendWiseCentralPage() {
   const { theme, setTheme } = useTheme();
@@ -91,6 +91,7 @@ export default function SpendWiseCentralPage() {
   const [isGeneratingData, setIsGeneratingData] = useState(false);
   const [isAppInfoDialogOpen, setIsAppInfoDialogOpen] = useState(false);
   const [isReleaseNotesDialogOpen, setIsReleaseNotesDialogOpen] = useState(false);
+  const [isManageWorkspaceDialogOpen, setIsManageWorkspaceDialogOpen] = useState(false); // Added: Step 1
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const [isExcelUploadDialogOpen, setIsExcelUploadDialogOpen] = useState(false);
@@ -113,6 +114,7 @@ export default function SpendWiseCentralPage() {
   const [formattedDateTime, setFormattedDateTime] = useState<string>('');
   const [showScenariosList, setShowScenariosList] = useState(false); // Set to false so it starts hidden
   const [appHomeCountry, setAppHomeCountry] = useState<string>(DEFAULT_HOME_COUNTRY);
+  const [zoomLevel, setZoomLevel] = useState<number>(100); // Add zoom state
   const [appCurrency, setAppCurrency] = useState<CurrencyInfo>(() => {
     if (typeof window === 'undefined') {
       return { code: 'USD', symbol: '$', rate: 1.00, locale: 'en-US' };
@@ -193,7 +195,7 @@ export default function SpendWiseCentralPage() {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
-        .replace(/'/g, '&' + 'apos;'); // Split to avoid parsing issues
+        .replace(/'/g, '&apos;'); // Fixed: removed the concatenation
     }, []);
 
   const resetValidationStates = useCallback(() => {
@@ -1016,6 +1018,19 @@ export default function SpendWiseCentralPage() {
     setTariffRateMultiplierPercent(value[0]);
   }, []);
 
+  // Add zoom handlers
+  const handleZoomIn = useCallback(() => {
+    setZoomLevel(prev => Math.min(prev + 10, 200));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoomLevel(prev => Math.max(prev - 10, 50));
+  }, []);
+
+  const handleZoomReset = useCallback(() => {
+    setZoomLevel(100);
+  }, []);
+
   const handleTariffInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(event.target.value, 10);
     if (!isNaN(value) && value >= 0 && value <= 300) {
@@ -1178,7 +1193,15 @@ export default function SpendWiseCentralPage() {
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col min-h-screen bg-background">
+      <div 
+        className="flex flex-col min-h-screen bg-background"
+        style={{ 
+          transform: `scale(${zoomLevel / 100})`,
+          transformOrigin: 'top left',
+          width: `${100 / (zoomLevel / 100)}%`,
+          height: `${100 / (zoomLevel / 100)}vh`
+        }}
+      >
       <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
         <div className="container mx-auto flex h-16 items-center space-x-3 px-4 sm:px-6 lg:px-8">
         <img
@@ -1267,20 +1290,7 @@ export default function SpendWiseCentralPage() {
                 <TooltipContent><p>About this Application</p></TooltipContent>
               </Tooltip>
 
-              {/* 2. Fullscreen Toggle */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleToggleFullscreen}
-                    aria-label={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-                  >
-                    {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>{isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}</p></TooltipContent>
-              </Tooltip>
+
 
               {/* 3. Excel Operations Dropdown */}
               <DropdownMenu>
@@ -1356,6 +1366,10 @@ export default function SpendWiseCentralPage() {
                     <Sparkles className="mr-2 h-4 w-4" />
                     Release Notes
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsManageWorkspaceDialogOpen(true)}> {/* Added: Step 2 */}
+                    <Building2 className="mr-2 h-4 w-4" />
+                    Manage Workspace
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -1386,8 +1400,69 @@ export default function SpendWiseCentralPage() {
                   <p>Clear All Application Data</p>
                 </TooltipContent>
               </Tooltip>
+              {/* 2. Fullscreen Toggle */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleToggleFullscreen}
+                    aria-label={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                  >
+                    {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>{isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}</p></TooltipContent>
+              </Tooltip>
+              
+              {/* 7. Zoom Controls */}
+              <div className="flex items-center space-x-1 border rounded-md px-2 py-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleZoomOut}
+                      disabled={zoomLevel <= 50}
+                      className="h-7 w-7"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Zoom Out</TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleZoomReset}
+                      className="h-7 px-2 font-mono text-xs"
+                    >
+                      {zoomLevel}%
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Reset Zoom</TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleZoomIn}
+                      disabled={zoomLevel >= 200}
+                      className="h-7 w-7"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Zoom In</TooltipContent>
+                </Tooltip>
+              </div>
 
-              {/* 7. Theme selector */}
+              {/* 8. Theme selector */}
               <Select value={theme} onValueChange={(value) => setTheme(value as 'light' | 'dark' | 'tada')}>
                 <SelectTrigger className="w-[40px] px-2" aria-label="Select Theme">
                   <SelectValue />
@@ -1436,7 +1511,7 @@ export default function SpendWiseCentralPage() {
           </section>
 
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabValue)} className="w-full">
-             <TabsList className={`sticky z-30 bg-background shadow-sm grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 text-xs`} style={{top: `${TABSLIST_STICKY_TOP_PX}px`}}>
+             <TabsList className={`sticky z-30 bg-background shadow-sm grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 text-xs`} style={{top: `${TABSLIST_STICKY_TOP_PX}px`}}> {/* Modified: lg:grid-cols-8 to lg:grid-cols-7 */}
               <TabsTrigger value="update-parts" className="flex items-center justify-start gap-1 tabs-trigger-active-underline text-xs whitespace-normal h-14">
                 <Package className="h-3.5 w-3.5" /> 1. Add/Update Parts
               </TabsTrigger>
@@ -1458,9 +1533,7 @@ export default function SpendWiseCentralPage() {
                <TabsTrigger value="review-summary" className="flex items-center justify-start gap-1 tabs-trigger-active-underline text-xs whitespace-normal h-14">
                 <BarChart3 className="h-3.5 w-3.5" /> 7. Review Spend
               </TabsTrigger>
-              <TabsTrigger value="manage-workspace" className="flex items-center justify-start gap-1 tabs-trigger-active-underline text-xs whitespace-normal h-14">
-                <Building2 className="h-3.5 w-3.5" /> 8. Manage Workspace
-              </TabsTrigger>
+              {/* Removed: Step 3 - Manage Workspace Tab Trigger */}
             </TabsList>
 
             <TabsContent value="update-parts" className="mt-4">
@@ -1725,9 +1798,7 @@ export default function SpendWiseCentralPage() {
               appCurrency={appCurrency}
             />
             </TabsContent>
-            <TabsContent value="manage-workspace" className="mt-4">
-              <ManageWorkspaceTab />
-            </TabsContent>
+            {/* Removed: Step 4 - Manage Workspace Tab Content */}
           </Tabs>
         </main>
         <footer className="fixed bottom-0 left-0 right-0 z-50 flex h-12 items-center justify-between border-t bg-card px-4 py-3 text-xs text-muted-foreground sm:px-6 lg:px-8 shadow-md">
@@ -1752,6 +1823,32 @@ export default function SpendWiseCentralPage() {
             isOpen={isReleaseNotesDialogOpen}
             onClose={() => setIsReleaseNotesDialogOpen(false)}
         />
+        {/* Added: Step 5 - Manage Workspace Dialog */}
+        <Dialog open={isManageWorkspaceDialogOpen} onOpenChange={setIsManageWorkspaceDialogOpen}>
+          <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Building2 className="mr-2 h-5 w-5 text-primary" />
+                Manage Workspace
+              </DialogTitle>
+              <DialogDescription>
+                Create, manage, and collaborate on workspaces
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4">
+              <ManageWorkspaceTab
+                parts={parts}
+                suppliers={suppliers}
+                partSupplierAssociations={partSupplierAssociations}
+                partCategoryMappings={partCategoryMappings}
+                tariffRateMultiplier={tariffRateMultiplierPercent / 100}
+                totalLogisticsCostPercent={totalLogisticsCostPercent}
+                appHomeCountry={appHomeCountry}
+                appCurrency={appCurrency}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={isExcelUploadDialogOpen} onOpenChange={setIsExcelUploadDialogOpen}>
           <DialogContent className="sm:max-w-md">
