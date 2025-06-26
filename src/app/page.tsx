@@ -1441,7 +1441,7 @@ export default function SpendWiseCentralPage() {
                 }}
               >
                 <Wand2 size={18} className="magic-wand-icon" />
-                AI Assistant
+                Tada AI
               </Button>
               {/* 2. Fullscreen Toggle */}
               <Tooltip>
