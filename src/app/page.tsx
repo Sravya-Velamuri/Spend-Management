@@ -27,7 +27,7 @@ import {
   Package, Building, Building2, ArrowRightLeft, FolderTree, Sun, Moon, Sparkles, Loader2, Briefcase, Users, 
   DollarSignIcon, Globe, Shield, Lightbulb, MessageCircle, Wand2, FileX2, ArrowUpToLine, ArrowDownToLine, 
   FileSpreadsheet, HelpCircle, Home, Info, CheckCircle, ListChecks, Search, ExternalLink, AlertTriangle, 
-  BarChart3, FileText, Maximize2, Minimize2, CloudUpload, CloudDownload, ChevronDown, X, Plus, Minus
+  BarChart3, FileText, Maximize2, Minimize2, CloudUpload, CloudDownload, ChevronDown, X, Plus, Minus, Trash2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -1334,7 +1334,7 @@ export default function SpendWiseCentralPage() {
                     )}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem 
                     onClick={handleLoadSampleData}
                     disabled={isLoadingSampleData || isUploadingExcel}
@@ -1424,7 +1424,7 @@ export default function SpendWiseCentralPage() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="icon" onClick={handleClearAllData} aria-label="Clear All Data">
-                    <FileX2 className="h-5 w-5" />
+                  <Trash2 className="h-5 w-5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
