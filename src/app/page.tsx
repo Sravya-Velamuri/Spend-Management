@@ -1393,11 +1393,15 @@ export default function SpendWiseCentralPage() {
                     <Sparkles className="mr-2 h-4 w-4" />
                     Release Notes
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsManageWorkspaceDialogOpen(true)}> {/* Added: Step 2 */}
-                    <Building2 className="mr-2 h-4 w-4" />
-                    Manage Workspace
+                  <DropdownMenuItem onClick={() => setIsManageWorkspaceDialogOpen(true)}>
+                     <Building2 className="mr-2 h-4 w-4" />
+                     Manage Workspace
                   </DropdownMenuItem>
-                </DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => setShowSpendWiseChatbot(true)}>
+                     <Wand2 className="mr-2 h-4 w-4" />
+                     AI Assistant
+                  </DropdownMenuItem>
+                  </DropdownMenuContent>
               </DropdownMenu>
 
               {/* 5. SpendWiseBot */}
@@ -1428,21 +1432,7 @@ export default function SpendWiseCentralPage() {
                 </TooltipContent>
               </Tooltip>
             
-              <Button
-                onClick={() => setShowSpendWiseChatbot(true)}
-                variant="outline"
-                size="sm"
-                className="gap-2 magic-wand-button"
-                style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
-                  border: 'none',
-                  boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
-                }}
-              >
-                <Wand2 size={18} className="magic-wand-icon" />
-                Tada AI
-              </Button>
+
               {/* 2. Fullscreen Toggle */}
               <Tooltip>
                 <TooltipTrigger asChild>
