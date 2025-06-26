@@ -27,7 +27,7 @@ import {
   Package, Building, Building2, ArrowRightLeft, FolderTree, Sun, Moon, Sparkles, Loader2, Briefcase, Users, 
   DollarSignIcon, Globe, Shield, Lightbulb, MessageCircle, Wand2, FileX2, ArrowUpToLine, ArrowDownToLine, 
   FileSpreadsheet, HelpCircle, Home, Info, CheckCircle, ListChecks, Search, ExternalLink, AlertTriangle, 
-  BarChart3, FileText, Maximize2, Minimize2, CloudUpload, ChevronDown, X, Plus, Minus // Added ChevronDown, X, Plus, Minus
+  BarChart3, FileText, Maximize2, Minimize2, CloudUpload, CloudDownload, ChevronDown, X, Plus, Minus
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -1334,7 +1334,7 @@ export default function SpendWiseCentralPage() {
                     )}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-52">
                   <DropdownMenuItem 
                     onClick={handleLoadSampleData}
                     disabled={isLoadingSampleData || isUploadingExcel}
@@ -1366,7 +1366,7 @@ export default function SpendWiseCentralPage() {
                     <ChevronDown className="h-3 w-3 ml-1 text-purple-600 dark:text-purple-400" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-52">
                   <DropdownMenuItem 
                     onClick={handleUploadToTADA}
                     disabled={!parts.length || isUploading}
@@ -1378,7 +1378,7 @@ export default function SpendWiseCentralPage() {
                     onClick={handleLoadFromTADA}
                     disabled={isLoadingFromTADA || isUploadingExcel}
                   >
-                    <Globe className="mr-2 h-4 w-4" />
+                    <CloudDownload className="mr-2 h-4 w-4" />
                     Download from TADA
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLoadButtonClick}>
@@ -1527,7 +1527,7 @@ export default function SpendWiseCentralPage() {
           </div>
         </header>
 
-        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8">
           <section aria-labelledby="summary-stats-title" className={`sticky z-40 bg-background shadow-sm`} style={{top: `${HEADER_HEIGHT_PX}px`}}>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1 px-4 py-2">
               {summaryStatsData.map(stat => (
@@ -1844,7 +1844,7 @@ export default function SpendWiseCentralPage() {
             {/* Removed: Step 4 - Manage Workspace Tab Content */}
           </Tabs>
         </main>
-        <footer className="fixed bottom-0 left-0 right-0 z-50 flex h-12 items-center justify-between border-t bg-card px-4 py-3 text-xs text-muted-foreground sm:px-6 lg:px-8 shadow-md">
+        <footer className="flex h-12 items-center justify-between border-t bg-card px-4 py-3 text-xs text-muted-foreground sm:px-6 lg:px-8 shadow-md">
           <div>
             <span>Copyright TADA Cognitive 2025</span>
           </div>
