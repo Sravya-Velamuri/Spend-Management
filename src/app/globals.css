@@ -224,3 +224,71 @@ body {
 .magic-wand-button:hover .magic-wand-icon {
   animation-duration: 1s;
 }
+/* Fix for global scroll bleed-through issues */
+.sticky {
+  /* Ensure sticky elements have solid backgrounds */
+  background-color: hsl(var(--background)) !important;
+  /* Add backdrop blur for better visual separation */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Ensure proper z-index hierarchy for sticky elements */
+header.sticky {
+  z-index: 50 !important;
+}
+
+section.sticky {
+  z-index: 40 !important;
+  background-color: hsl(var(--background)) !important;
+}
+
+.tabs-list.sticky {
+  z-index: 30 !important;
+  background-color: hsl(var(--background)) !important;
+}
+
+/* Fix for content bleeding through */
+[role="tabpanel"] {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure cards and content have proper backgrounds */
+.card {
+  background-color: hsl(var(--card)) !important;
+}
+
+/* Fix for scroll containers */
+.h-\[calc\(100vh-380px\)\],
+[class*="h-[calc(100vh"],
+.overflow-y-auto,
+.overflow-auto {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure table headers in all tabs have proper styling */
+.sticky.top-0 {
+  background-color: hsl(var(--card)) !important;
+  z-index: 10;
+  box-shadow: 0 1px 0 hsl(var(--border));
+}
+
+/* Fix for dark mode */
+.dark .sticky {
+  background-color: hsl(var(--background)) !important;
+}
+
+.dark .card {
+  background-color: hsl(var(--card)) !important;
+}
+
+/* Fix for TADA theme */
+.tada .sticky {
+  background-color: hsl(var(--background)) !important;
+}
+
+.tada .card {
+  background-color: hsl(var(--card)) !important;
+}
