@@ -1397,12 +1397,19 @@ export default function SpendWiseCentralPage() {
                      <Building2 className="mr-2 h-4 w-4" />
                      Manage Workspace
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowSpendWiseChatbot(true)}>
-                     <Wand2 className="mr-2 h-4 w-4" />
-                     AI Assistant
-                  </DropdownMenuItem>
-                  </DropdownMenuContent>
-              </DropdownMenu>
+                <DropdownMenuItem onClick={() => setShowSpendWiseChatbot(true)}>
+                  <Wand2 className="mr-2 h-4 w-4" />
+                  AI Assistant
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => window.open('https://www.tadanow.com/request-a-demo', '_blank')}
+                  className="bg-[#FF6B6B] hover:bg-[#FF5252] text-white font-medium"
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Request a Demo
+                </DropdownMenuItem>
+                </DropdownMenuContent>
+                </DropdownMenu>
 
               {/* 5. SpendWiseBot */}
               <SpendWiseBot
