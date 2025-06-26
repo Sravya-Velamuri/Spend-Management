@@ -1,4 +1,4 @@
-"use client"; // This file is a client component in Next.js 13+ with the app directory enabled.
+"use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,6 +40,7 @@ import { generateSpendData } from '@/ai/flows/generate-spend-data-flow';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAutoGeocode } from '@/hooks/useAutoGeocode';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import SpendWiseChatbotModal from "@/components/chatbot/SpendWiseChatbotModal";
 import * as XLSX from 'xlsx';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -93,6 +94,7 @@ export default function SpendWiseCentralPage() {
   const [isReleaseNotesDialogOpen, setIsReleaseNotesDialogOpen] = useState(false);
   const [isManageWorkspaceDialogOpen, setIsManageWorkspaceDialogOpen] = useState(false); // Added: Step 1
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showSpendWiseChatbot, setShowSpendWiseChatbot] = useState(false);
 
   const [isExcelUploadDialogOpen, setIsExcelUploadDialogOpen] = useState(false);
   const [isUploadingExcel, setIsUploadingExcel] = useState(false);
@@ -893,6 +895,31 @@ export default function SpendWiseCentralPage() {
     toast({ title: "All Data Cleared", description: "Application data has been reset to default." });
   }, [currentFilename, toast, resetValidationStates]);
 
+  const handleChatbotDataGenerated = useCallback((generatedData: {
+    parts: Part[];
+    suppliers: Supplier[];
+    partCategoryMappings: PartCategoryMapping[];
+    partSupplierAssociations: PartSupplierAssociation[];
+  }) => {
+    // Clear existing data first
+    setParts(generatedData.parts);
+    setSuppliers(generatedData.suppliers);
+    setPartCategoryMappings(generatedData.partCategoryMappings);
+    setPartSupplierAssociations(generatedData.partSupplierAssociations);
+    
+    // Reset validation states
+    resetValidationStates();
+    
+    // Show success message
+    toast({ 
+      title: "AI Data Loaded Successfully!", 
+      description: `Loaded ${generatedData.parts.length} parts and ${generatedData.suppliers.length} suppliers from AI assistant.` 
+    });
+    
+    // Close the chatbot
+    setShowSpendWiseChatbot(false);
+  }, [setParts, setSuppliers, setPartCategoryMappings, setPartSupplierAssociations, resetValidationStates, toast]);
+
 
   const totalParts = useMemo(() => parts.length, [parts]);
   const totalSuppliers = useMemo(() => suppliers.length, [suppliers]);
@@ -1400,6 +1427,22 @@ export default function SpendWiseCentralPage() {
                   <p>Clear All Application Data</p>
                 </TooltipContent>
               </Tooltip>
+            
+              <Button
+                onClick={() => setShowSpendWiseChatbot(true)}
+                variant="outline"
+                size="sm"
+                className="gap-2 magic-wand-button"
+                style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  border: 'none',
+                  boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+                }}
+              >
+                <Wand2 size={18} className="magic-wand-icon" />
+                AI Assistant
+              </Button>
               {/* 2. Fullscreen Toggle */}
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1957,10 +2000,16 @@ export default function SpendWiseCentralPage() {
             </Card>
           </div>
         )}
-              </div>
-          </TooltipProvider>
-        );
-      }
+      </div>
+      <SpendWiseChatbotModal
+        isOpen={showSpendWiseChatbot}
+        onClose={() => setShowSpendWiseChatbot(false)}
+        isDarkMode={theme === 'dark'}
+        onDataGenerated={handleChatbotDataGenerated}
+      />
+    </TooltipProvider>
+  );
+}
 
 
 interface ValidationSectionProps<T> {
