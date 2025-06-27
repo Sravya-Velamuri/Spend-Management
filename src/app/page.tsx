@@ -1502,23 +1502,26 @@ export default function SpendWiseCentralPage() {
                 </Tooltip>
               </div>
 
-              {/* 8. Theme selector */}
-              <Select value={theme} onValueChange={(value) => setTheme(value as 'light' | 'dark' | 'tada')}>
-                <SelectTrigger className="w-[40px] px-2" aria-label="Select Theme">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="light" className="flex justify-center">
-                    <Sun className="h-4 w-4" />
-                  </SelectItem>
-                  <SelectItem value="dark" className="flex justify-center">
-                    <Moon className="h-4 w-4" />
-                  </SelectItem>
-                  <SelectItem value="tada" className="flex justify-center">
-                    <Sparkles className="h-4 w-4" />
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+            {/* 8. Theme toggle */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                  aria-label={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+                >
+                  {theme === 'light' ? (
+                    <Moon className="h-5 w-5" />
+                  ) : (
+                    <Sun className="h-5 w-5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}</p>
+              </TooltipContent>
+            </Tooltip>
             </div>
             {/* MODIFIED HEADER BUTTONS SECTION ENDS HERE */}
           </div>

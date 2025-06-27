@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
-type Theme = 'light' | 'dark' | 'tada';
+type Theme = 'light' | 'dark';
 
 interface ThemeProviderState {
   theme: Theme;
