@@ -31,7 +31,7 @@ interface ChatSession {
   showAnalytics?: boolean;
 }
 
-const PERPLEXITY_API_KEY = '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'; // Hardcoded for testing - move to backend for production
+const PERPLEXITY_API_KEY = process.env.NEXT_PUBLIC_PERPLEXITY_API_KEY;
 
 const SpendWiseChatbot: React.FC<SpendWiseChatbotProps> = ({ onDataGenerated }) => {
   const [conversationState, setConversationState] = useState('greeting');
