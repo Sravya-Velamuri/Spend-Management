@@ -1,6 +1,6 @@
 // components/spendwise/chatbot/SpendWiseChatbot.tsx
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Building2, Factory, Cpu, ShoppingCart, Package, Sparkles, ArrowRight, Check, X } from 'lucide-react';
+import { Send, Building2, Factory, Cpu, ShoppingCart, Package, Sparkles, ArrowRight, Check, X, Edit2, Save } from 'lucide-react';
 import { spendWiseIndustryConfigs } from './industryConfigs';
 import { transformChatbotData } from './dataTransformers';
 
@@ -27,6 +27,8 @@ const SpendWiseChatbot: React.FC<SpendWiseChatbotProps> = ({ onDataGenerated }) 
     industry: '',
     industryKey: '',
     role: '',
+    pricingStrategy: '',
+    demandStrategy: '',
     annualSpendRange: '',
     supplierCount: '',
     homeCountry: 'USA',
@@ -48,6 +50,8 @@ const SpendWiseChatbot: React.FC<SpendWiseChatbotProps> = ({ onDataGenerated }) 
   const [typingMessageId, setTypingMessageId] = useState<number | null>(null);
   const [showIndustryCards, setShowIndustryCards] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -78,29 +82,50 @@ const SpendWiseChatbot: React.FC<SpendWiseChatbotProps> = ({ onDataGenerated }) 
           key => spendWiseIndustryConfigs[key].name === answer
         ) || 'automotive';
         setBusinessData(prev => ({ ...prev, industry: answer, industryKey }));
-        return `Excellent! I know the ${answer} industry well. What's your role in the supply chain?`;
+        return `Excellent! I know the ${answer} industry well. What's your role in managing spend?`;
       }
     },
     role: {
-      nextState: 'spendRange',
+      nextState: 'pricingStrategy',
       processAnswer: (answer: string) => {
         setBusinessData(prev => ({ ...prev, role: answer }));
-        return `As a ${answer}, what's your typical annual spend range?`;
+        return `Got it! As a ${answer}, you'll need comprehensive data. Now, how would you like to set product pricing?`;
+      }
+    },
+    pricingStrategy: {
+      nextState: 'demandStrategy',
+      processAnswer: (answer: string) => {
+        setBusinessData(prev => ({ ...prev, pricingStrategy: answer }));
+        const response = answer.includes('generate') 
+          ? "Perfect! I'll use industry benchmarks for realistic pricing." 
+          : answer.includes('custom')
+          ? "Understood. You'll be able to edit the pricing in the preview."
+          : "Great choice! We'll blend industry standards with your customizations.";
+        return `${response} Now, for demand volumes, what's your preference?`;
+      }
+    },
+    demandStrategy: {
+      nextState: 'spendRange',
+      processAnswer: (answer: string) => {
+        setBusinessData(prev => ({ ...prev, demandStrategy: answer }));
+        const response = answer.includes('generate')
+          ? "I'll generate realistic demand volumes based on your company size."
+          : "You'll be able to customize demand volumes in the preview.";
+        return `${response} What's your annual spend range?`;
       }
     },
     spendRange: {
       nextState: 'supplierCount',
       processAnswer: (answer: string) => {
         setBusinessData(prev => ({ ...prev, annualSpendRange: answer }));
-        return `${answer} in annual spend - that's a substantial portfolio! How many suppliers do you typically work with?`;
+        return `${answer} in annual spend. How many suppliers do you typically work with?`;
       }
     },
     supplierCount: {
       nextState: 'complete',
       processAnswer: (answer: string) => {
         setBusinessData(prev => ({ ...prev, supplierCount: answer }));
-        generateSpendData();
-        return `Perfect! Working with ${answer} suppliers. Let me generate your spend analysis data based on the ${businessData.industry} industry...`;
+        return `Working with ${answer} suppliers. Let me generate your spend analysis data based on the ${businessData.industry} industry...`;
       }
     }
   };
@@ -197,12 +222,74 @@ const SpendWiseChatbot: React.FC<SpendWiseChatbotProps> = ({ onDataGenerated }) 
       isBot: true,
       timestamp: new Date(),
       isComplete: false,
-      type: 'spend_options'
+      type: 'pricing_options'
     };
 
     setMessages(prev => [...prev, botMessage]);
 
     const nextMessage = conversationFlow.role.processAnswer(role);
+    setTimeout(() => {
+      typeMessage(botMessage.id, nextMessage, 20, () => {
+        setConversationState('pricingStrategy');
+      });
+    }, 500);
+  };
+
+  const handlePricingStrategySelect = (strategy: string) => {
+    const userMessage: Message = {
+      id: generateUniqueId(),
+      text: strategy,
+      isBot: false,
+      timestamp: new Date(),
+      isComplete: true,
+      type: 'user'
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    
+    const botMessage: Message = {
+      id: generateUniqueId(),
+      text: '',
+      isBot: true,
+      timestamp: new Date(),
+      isComplete: false,
+      type: 'demand_options'
+    };
+
+    setMessages(prev => [...prev, botMessage]);
+
+    const nextMessage = conversationFlow.pricingStrategy.processAnswer(strategy);
+    setTimeout(() => {
+      typeMessage(botMessage.id, nextMessage, 20, () => {
+        setConversationState('demandStrategy');
+      });
+    }, 500);
+  };
+
+  const handleDemandStrategySelect = (strategy: string) => {
+    const userMessage: Message = {
+      id: generateUniqueId(),
+      text: strategy,
+      isBot: false,
+      timestamp: new Date(),
+      isComplete: true,
+      type: 'user'
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    
+    const botMessage: Message = {
+      id: generateUniqueId(),
+      text: '',
+      isBot: true,
+      timestamp: new Date(),
+      isComplete: false,
+      type: 'spend_options'
+    };
+
+    setMessages(prev => [...prev, botMessage]);
+
+    const nextMessage = conversationFlow.demandStrategy.processAnswer(strategy);
     setTimeout(() => {
       typeMessage(botMessage.id, nextMessage, 20, () => {
         setConversationState('spendRange');
@@ -245,19 +332,54 @@ const SpendWiseChatbot: React.FC<SpendWiseChatbotProps> = ({ onDataGenerated }) 
     const config = spendWiseIndustryConfigs[businessData.industryKey];
     const roleConfig = config.roles[businessData.role] || config.roles[Object.keys(config.roles)[0]];
     
+    // Parse the spend range to get target spend
+    let targetSpend = 30000000; // Default $30M
+    const spendRange = businessData.annualSpendRange;
+    if (spendRange.includes('< $10M')) {
+      targetSpend = 5000000; // $5M midpoint
+    } else if (spendRange.includes('$10M - $50M')) {
+      targetSpend = 30000000; // $30M midpoint
+    } else if (spendRange.includes('$50M - $100M')) {
+      targetSpend = 75000000; // $75M midpoint
+    } else if (spendRange.includes('$100M - $500M')) {
+      targetSpend = 300000000; // $300M midpoint
+    } else if (spendRange.includes('$500M+')) {
+      targetSpend = 750000000; // $750M
+    }
+    
+    // Calculate current total spend from products
+    const currentTotalSpend = roleConfig.products.reduce((sum: number, product: any) => {
+      return sum + (product.baseCost * product.volume);
+    }, 0);
+    
+    // Calculate scaling factor
+    const scalingFactor = targetSpend / currentTotalSpend;
+    
+    // Scale products to match spend range
+    const scaledProducts = roleConfig.products.map((product: any) => ({
+      ...product,
+      // Scale volume to achieve target spend, keeping costs relatively stable
+      volume: Math.round(product.volume * scalingFactor),
+      // Optionally adjust cost slightly for realism
+      baseCost: product.baseCost * (0.9 + Math.random() * 0.2) // ±10% variation
+    }));
+    
     // Generate the data based on configuration
     const generatedData = {
-      products: roleConfig.products,
+      products: scaledProducts,
       sourceMix: config.supplierCountries,
       industry: businessData.industry,
       role: businessData.role,
       categories: config.categories,
       homeCountry: businessData.homeCountry,
       spendRange: businessData.annualSpendRange,
-      supplierCount: businessData.supplierCount
+      supplierCount: businessData.supplierCount,
+      pricingStrategy: businessData.pricingStrategy,
+      demandStrategy: businessData.demandStrategy
     };
 
     setBusinessData(prev => ({ ...prev, generatedData }));
+    setEditedData(JSON.parse(JSON.stringify(generatedData))); // Deep copy for editing
     setShowPreview(true);
     
     const previewMessage: Message = {
@@ -270,6 +392,42 @@ const SpendWiseChatbot: React.FC<SpendWiseChatbotProps> = ({ onDataGenerated }) 
     };
     
     setMessages(prev => [...prev, previewMessage]);
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = () => {
+    // Validate that sourceMix percentages sum to 100
+    const totalPercentage = Object.values(editedData.sourceMix).reduce((sum: number, country: any) => sum + country.percentage, 0);
+    if (Math.abs(totalPercentage - 100) > 0.1) {
+      alert('Source mix percentages must sum to 100%');
+      return;
+    }
+    setBusinessData(prev => ({ ...prev, generatedData: editedData }));
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditedData(JSON.parse(JSON.stringify(businessData.generatedData)));
+    setIsEditing(false);
+  };
+
+  const handleProductEdit = (index: number, field: string, value: any) => {
+    setEditedData((prev: any) => {
+      const newData = { ...prev };
+      newData.products[index][field] = field === 'baseCost' || field === 'volume' ? parseFloat(value) || 0 : value;
+      return newData;
+    });
+  };
+
+  const handleCountryEdit = (country: string, percentage: number) => {
+    setEditedData((prev: any) => {
+      const newData = { ...prev };
+      newData.sourceMix[country].percentage = percentage;
+      return newData;
+    });
   };
 
   const handleLoadData = () => {
@@ -392,10 +550,56 @@ const SpendWiseChatbot: React.FC<SpendWiseChatbotProps> = ({ onDataGenerated }) 
                   </div>
                 )}
 
+                {/* Pricing Strategy Options */}
+                {message.type === 'pricing_options' && (
+                  <div className="scope-options-container">
+                    <button
+                      className="scope-option-button recommended"
+                      onClick={() => handlePricingStrategySelect('Generate based on industry benchmarks')}
+                    >
+                      <Sparkles size={14} />
+                      Generate based on industry benchmarks
+                      <span className="recommended-badge">Recommended</span>
+                    </button>
+                    <button
+                      className="scope-option-button"
+                      onClick={() => handlePricingStrategySelect('I\'ll provide custom pricing')}
+                    >
+                      I'll provide custom pricing
+                    </button>
+                    <button
+                      className="scope-option-button"
+                      onClick={() => handlePricingStrategySelect('Mix of both')}
+                    >
+                      Mix of both
+                    </button>
+                  </div>
+                )}
+
+                {/* Demand Strategy Options */}
+                {message.type === 'demand_options' && (
+                  <div className="scope-options-container">
+                    <button
+                      className="scope-option-button recommended"
+                      onClick={() => handleDemandStrategySelect('Generate industry-standard volumes')}
+                    >
+                      <Sparkles size={14} />
+                      Generate industry-standard volumes
+                      <span className="recommended-badge">Based on company size</span>
+                    </button>
+                    <button
+                      className="scope-option-button"
+                      onClick={() => handleDemandStrategySelect('Custom volumes I\'ll specify')}
+                    >
+                      Custom volumes I'll specify
+                    </button>
+                  </div>
+                )}
+
                 {/* Spend Range Options */}
                 {message.type === 'spend_options' && (
                   <div className="scope-options-container">
-                    {['$10M - $50M', '$50M - $100M', '$100M - $500M', '$500M+'].map((range) => (
+                    {['< $10M', '$10M - $50M', '$50M - $100M', '$100M - $500M', '$500M+'].map((range) => (
                       <button
                         key={range}
                         className="scope-option-button"
@@ -410,7 +614,7 @@ const SpendWiseChatbot: React.FC<SpendWiseChatbotProps> = ({ onDataGenerated }) 
                 {/* Supplier Count Options */}
                 {message.type === 'supplier_options' && (
                   <div className="scope-options-container">
-                    {['10-20', '20-50', '50-100', '100+'].map((count) => (
+                    {['10-25', '26-50', '50-100', '100+'].map((count) => (
                       <button
                         key={count}
                         className="scope-option-button"
@@ -431,7 +635,7 @@ const SpendWiseChatbot: React.FC<SpendWiseChatbotProps> = ({ onDataGenerated }) 
                             isBot: true,
                             timestamp: new Date(),
                             isComplete: false,
-                            type: 'text'
+                            type: 'completion'
                           };
                           setMessages(prev => [...prev, botMsg]);
                           
@@ -448,49 +652,6 @@ const SpendWiseChatbot: React.FC<SpendWiseChatbotProps> = ({ onDataGenerated }) 
                     ))}
                   </div>
                 )}
-
-                {/* Data Preview */}
-                {message.type === 'preview' && showPreview && businessData.generatedData && (
-                  <div className="data-preview">
-                    <div className="preview-section">
-                      <h4>📦 Products ({businessData.generatedData.products.length})</h4>
-                      <div className="preview-list">
-                        {businessData.generatedData.products.slice(0, 3).map((product: any, idx: number) => (
-                          <div key={idx} className="preview-item">
-                            • {product.name} - ${product.baseCost.toLocaleString()}
-                          </div>
-                        ))}
-                        {businessData.generatedData.products.length > 3 && (
-                          <div className="preview-item more">
-                            +{businessData.generatedData.products.length - 3} more products...
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="preview-section">
-                      <h4>🌍 Global Sourcing Mix</h4>
-                      <div className="preview-list">
-                        {Object.entries(businessData.generatedData.sourceMix).map(([country, data]: [string, any]) => (
-                          <div key={country} className="preview-item">
-                            <span className="country-flag">
-                              {country === 'USA' ? '🇺🇸' : country === 'China' ? '🇨🇳' : 
-                               country === 'Mexico' ? '🇲🇽' : country === 'Vietnam' ? '🇻🇳' : 
-                               country === 'Canada' ? '🇨🇦' : country === 'Germany' ? '🇩🇪' : 
-                               country === 'Japan' ? '🇯🇵' : country === 'India' ? '🇮🇳' : '🌍'}
-                            </span>
-                            <span>{country}: {data.percentage}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <button className="load-data-button" onClick={handleLoadData}>
-                      <Check size={18} />
-                      Load This Data Into Spend Analysis
-                    </button>
-                  </div>
-                )}
                 
                 <p className="message-time">{formatTime(message.timestamp)}</p>
               </div>
@@ -499,6 +660,185 @@ const SpendWiseChatbot: React.FC<SpendWiseChatbotProps> = ({ onDataGenerated }) 
               )}
             </div>
           ))}
+
+          {/* Data Preview - Show only once, outside of messages */}
+          {showPreview && businessData.generatedData && (
+            <div className={`data-preview ${isEditing ? 'editing' : ''}`}>
+              <div className="preview-header">
+                <h3>Generated Data Preview</h3>
+                {!isEditing ? (
+                  <button className="edit-button" onClick={handleEdit}>
+                    <Edit2 size={16} />
+                    Edit Data
+                  </button>
+                ) : (
+                  <div className="edit-controls">
+                    <button className="save-button" onClick={handleSaveEdit}>
+                      <Save size={16} />
+                      Save Changes
+                    </button>
+                    <button className="cancel-button" onClick={handleCancelEdit}>
+                      <X size={16} />
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="preview-content">
+                {/* Products Section */}
+                <div className="preview-section">
+                  <h4>📦 Products ({editedData?.products.length || businessData.generatedData.products.length})</h4>
+                  <div className={isEditing ? "products-edit-list" : "preview-list"}>
+                    {(isEditing ? editedData?.products : businessData.generatedData.products)?.map((product: any, idx: number) => (
+                      <div key={idx} className="editable-item">
+                        {!isEditing ? (
+                          <>
+                            <span className="product-name">{product.name}</span>
+                            <span className="product-cost">${product.baseCost.toLocaleString()}</span>
+                            <span className="product-volume">Vol: {product.volume.toLocaleString()}</span>
+                          </>
+                        ) : (
+                          <>
+                            <div>
+                              <div className="input-label">Product Name</div>
+                              <input
+                                type="text"
+                                value={product.name}
+                                onChange={(e) => handleProductEdit(idx, 'name', e.target.value)}
+                                className="edit-input"
+                                placeholder="Product name"
+                              />
+                            </div>
+                            <div>
+                              <div className="input-label">Cost ($)</div>
+                              <input
+                                type="number"
+                                value={product.baseCost}
+                                onChange={(e) => handleProductEdit(idx, 'baseCost', e.target.value)}
+                                className="edit-input"
+                                placeholder="0.00"
+                                step="0.01"
+                              />
+                            </div>
+                            <div>
+                              <div className="input-label">Volume</div>
+                              <input
+                                type="number"
+                                value={product.volume}
+                                onChange={(e) => handleProductEdit(idx, 'volume', e.target.value)}
+                                className="edit-input"
+                                placeholder="0"
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Global Sourcing Mix Section */}
+                <div className="preview-section">
+                  <h4>🌍 Global Sourcing Mix</h4>
+                  <div className={isEditing ? "source-mix-edit-grid" : "source-mix-grid"}>
+                    {Object.entries(isEditing ? editedData?.sourceMix || {} : businessData.generatedData.sourceMix).map(([country, data]: [string, any]) => (
+                      <div key={country} className={isEditing ? "source-mix-edit-item" : "source-mix-item"}>
+                        {!isEditing ? (
+                          <>
+                            <span className="country-flag">
+                              {country === 'USA' ? '🇺🇸' : country === 'China' ? '🇨🇳' : 
+                               country === 'Mexico' ? '🇲🇽' : country === 'Vietnam' ? '🇻🇳' : 
+                               country === 'Canada' ? '🇨🇦' : country === 'Germany' ? '🇩🇪' : 
+                               country === 'Japan' ? '🇯🇵' : country === 'India' ? '🇮🇳' : 
+                               country === 'South Korea' ? '🇰🇷' : country === 'Czech Republic' ? '🇨🇿' :
+                               country === 'Poland' ? '🇵🇱' : country === 'Romania' ? '🇷🇴' :
+                               country === 'Morocco' ? '🇲🇦' : '🌍'}
+                            </span>
+                            <span className="country-name">{country}</span>
+                            <span className="country-percentage">{data.percentage}%</span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="country-edit-header">
+                              <span className="country-flag">
+                                {country === 'USA' ? '🇺🇸' : country === 'China' ? '🇨🇳' : 
+                                 country === 'Mexico' ? '🇲🇽' : country === 'Vietnam' ? '🇻🇳' : 
+                                 country === 'Canada' ? '🇨🇦' : country === 'Germany' ? '🇩🇪' : 
+                                 country === 'Japan' ? '🇯🇵' : country === 'India' ? '🇮🇳' : 
+                                 country === 'South Korea' ? '🇰🇷' : country === 'Czech Republic' ? '🇨🇿' :
+                                 country === 'Poland' ? '🇵🇱' : country === 'Romania' ? '🇷🇴' :
+                                 country === 'Morocco' ? '🇲🇦' : '🌍'}
+                              </span>
+                              <span className="country-name">{country}</span>
+                            </div>
+                            <div className="percentage-input-wrapper">
+                              <input
+                                type="number"
+                                value={data.percentage}
+                                onChange={(e) => handleCountryEdit(country, parseFloat(e.target.value) || 0)}
+                                className="edit-input percentage-input"
+                                min="0"
+                                max="100"
+                                step="1"
+                              />
+                              <span className="percentage-symbol">%</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Summary Section */}
+                <div className="preview-section">
+                  <h4>📊 Summary</h4>
+                  <div className={isEditing ? "summary-edit-grid" : "preview-summary"}>
+                    <div className="summary-item">
+                      <span className="summary-label">Industry</span>
+                      <span className="summary-value">{businessData.industry}</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="summary-label">Role</span>
+                      <span className="summary-value">{businessData.role}</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="summary-label">Annual Spend Range</span>
+                      <span className="summary-value">{businessData.annualSpendRange}</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="summary-label">Generated Total Spend</span>
+                      <span className="summary-value">
+                        ${((isEditing ? editedData?.products : businessData.generatedData.products)?.reduce((sum: number, p: any) => sum + (p.baseCost * p.volume), 0) / 1000000).toFixed(1)}M
+                      </span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="summary-label">Suppliers</span>
+                      <span className="summary-value">{businessData.supplierCount}</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="summary-label">Pricing Strategy</span>
+                      <span className="summary-value">{businessData.pricingStrategy}</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="summary-label">Demand Strategy</span>
+                      <span className="summary-value">{businessData.demandStrategy}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {!isEditing && (
+                <div className="preview-actions">
+                  <button className="load-data-button" onClick={handleLoadData}>
+                    <Check size={18} />
+                    Load This Data Into Spend Analysis
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           
           {isLoading && !typingMessageId && (
             <div className="message bot-message loading-message">

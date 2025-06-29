@@ -626,3 +626,681 @@
     gap: 8px;
   }
 }
+/* Dark Theme Fixes - Add these to your SpendWiseChatbot.css file */
+
+/* Fix Industry Cards in Dark Mode */
+.dark-mode .industry-card {
+  background: rgba(30, 41, 59, 0.9) !important;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #f1f5f9;
+}
+
+.dark-mode .industry-card:hover {
+  background: rgba(51, 65, 85, 0.9) !important;
+  border-color: rgba(148, 163, 184, 0.4);
+  transform: translateY(-2px);
+}
+
+.dark-mode .industry-icon {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f1f5f9;
+}
+
+.dark-mode .industry-name {
+  color: #f1f5f9 !important;
+  font-weight: 500;
+}
+
+/* Fix Data Preview in Dark Mode */
+.dark-mode .data-preview {
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  color: #f1f5f9;
+}
+
+.dark-mode .preview-header {
+  border-bottom-color: rgba(71, 85, 105, 0.3);
+}
+
+.dark-mode .preview-header h3 {
+  color: #f1f5f9;
+}
+
+/* Fix Edit Inputs in Dark Mode */
+.dark-mode .edit-input {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(71, 85, 105, 0.4);
+  color: #f1f5f9;
+}
+
+.dark-mode .edit-input:focus {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.dark-mode .edit-input::placeholder {
+  color: rgba(148, 163, 184, 0.6);
+}
+
+/* Fix Product List Items in Dark Mode */
+.dark-mode .preview-item {
+  color: #e2e8f0;
+  border-bottom-color: rgba(71, 85, 105, 0.3);
+}
+
+.dark-mode .product-name {
+  color: #f1f5f9;
+}
+
+.dark-mode .product-cost {
+  color: #34d399;
+}
+
+.dark-mode .product-volume {
+  color: #94a3b8;
+}
+
+/* Fix Source Mix Items in Dark Mode */
+.dark-mode .source-mix-grid {
+  background: transparent;
+}
+
+.dark-mode .source-mix-item {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  color: #f1f5f9;
+}
+
+.dark-mode .source-mix-item:hover {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.dark-mode .country-name {
+  color: #e2e8f0;
+}
+
+.dark-mode .country-percentage {
+  color: #60a5fa;
+}
+
+/* Fix Summary Section in Dark Mode */
+.dark-mode .preview-summary {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(71, 85, 105, 0.2);
+}
+
+.dark-mode .summary-label {
+  color: #94a3b8;
+}
+
+.dark-mode .summary-value {
+  color: #f1f5f9;
+}
+
+/* Fix Buttons in Dark Mode */
+.dark-mode .edit-button {
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.dark-mode .edit-button:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.dark-mode .save-button {
+  background: #10b981;
+  color: white;
+}
+
+.dark-mode .save-button:hover {
+  background: #059669;
+}
+
+.dark-mode .cancel-button {
+  background: rgba(107, 114, 128, 0.1);
+  color: #9ca3af;
+  border-color: rgba(107, 114, 128, 0.3);
+}
+
+.dark-mode .cancel-button:hover {
+  background: rgba(107, 114, 128, 0.2);
+  border-color: rgba(107, 114, 128, 0.5);
+}
+
+/* Fix Option Buttons in Dark Mode */
+.dark-mode .scope-option-button {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(71, 85, 105, 0.4);
+  color: #e2e8f0;
+}
+
+.dark-mode .scope-option-button:hover {
+  background: rgba(51, 65, 85, 0.6);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #f1f5f9;
+}
+
+.dark-mode .scope-option-button.recommended {
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+
+.dark-mode .scope-option-button.recommended:hover {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+.dark-mode .recommended-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+/* Fix Message Bubbles in Dark Mode */
+.dark-mode .bot-bubble {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  color: #e2e8f0;
+}
+
+.dark-mode .user-bubble {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+/* Fix Input Area in Dark Mode */
+.dark-mode .message-input {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(71, 85, 105, 0.4);
+  color: #f1f5f9;
+}
+
+.dark-mode .message-input:focus {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: #3b82f6;
+}
+
+.dark-mode .message-input::placeholder {
+  color: rgba(148, 163, 184, 0.5);
+}
+
+/* Fix Load Data Button in Dark Mode */
+.dark-mode .load-data-button {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+}
+
+.dark-mode .load-data-button:hover {
+  box-shadow: 0 6px 25px rgba(16, 185, 129, 0.3);
+}
+
+/* Ensure all text is visible in dark mode */
+.dark-mode .message-text {
+  color: #e2e8f0;
+}
+
+.dark-mode .message-time {
+  color: rgba(148, 163, 184, 0.7);
+}
+
+.dark-mode .preview-section h4 {
+  color: #f1f5f9;
+}
+
+.dark-mode .preview-item.more {
+  color: #94a3b8;
+}
+
+/* Fix typing indicator in dark mode */
+.dark-mode .typing-indicator .dot {
+  background-color: #94a3b8;
+}
+
+/* Professional Edit Mode Styling */
+.dark-mode .data-preview.editing {
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+}
+
+/* Add subtle glow effect for edit mode */
+.dark-mode .edit-input:focus {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2), 0 0 8px rgba(59, 130, 246, 0.1);
+}
+
+/* Ensure proper contrast for all interactive elements */
+.dark-mode .editable-item {
+  background: rgba(30, 41, 59, 0.3);
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  border-bottom: none;
+}
+
+.dark-mode .editable-item:hover {
+  background: rgba(30, 41, 59, 0.5);
+}
+/* Professional Edit Form Styling - Add to SpendWiseChatbot.css */
+
+/* Edit Mode Container */
+.data-preview {
+  max-height: 600px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.data-preview.editing {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 0;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.dark-mode .data-preview.editing {
+  background: #1e293b;
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+/* Edit Mode Header */
+.preview-header {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  z-index: 10;
+  margin-bottom: 0;
+}
+
+.dark-mode .preview-header {
+  background: #0f172a;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+}
+
+/* Scrollable Content Area */
+.preview-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  max-height: 480px;
+}
+
+/* Custom Scrollbar */
+.preview-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.preview-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.dark-mode .preview-content::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.3);
+}
+
+.preview-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.dark-mode .preview-content::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.5);
+}
+
+.preview-content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Section Cards */
+.preview-section {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.dark-mode .preview-section {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+}
+
+.preview-section h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dark-mode .preview-section h4 {
+  color: #f1f5f9;
+}
+
+/* Products List Container */
+.products-edit-list {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-right: -8px;
+}
+
+.products-edit-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.products-edit-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.products-edit-list::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 3px;
+}
+
+.dark-mode .products-edit-list::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.4);
+}
+
+/* Product Edit Items */
+.editable-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 12px;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.dark-mode .editable-item {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(71, 85, 105, 0.2);
+}
+
+.editable-item:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.1);
+}
+
+.dark-mode .editable-item:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+  background: rgba(15, 23, 42, 0.7);
+}
+
+/* Professional Input Styling */
+.edit-input {
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.dark-mode .edit-input {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  color: #f1f5f9;
+}
+
+.edit-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.dark-mode .edit-input:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+}
+
+/* Input Labels */
+.input-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dark-mode .input-label {
+  color: #94a3b8;
+}
+
+/* Source Mix Grid - Better Layout */
+.source-mix-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.source-mix-edit-item {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+
+.dark-mode .source-mix-edit-item {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(71, 85, 105, 0.2);
+}
+
+.source-mix-edit-item:hover {
+  border-color: #3b82f6;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.country-edit-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.country-flag {
+  font-size: 20px;
+}
+
+.country-name {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.dark-mode .country-name {
+  color: #f1f5f9;
+}
+
+.percentage-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.percentage-input {
+  width: 70px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.percentage-symbol {
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Summary Section - Clean Grid */
+.summary-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  background: #fafbfc;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.dark-mode .summary-edit-grid {
+  background: rgba(15, 23, 42, 0.3);
+  border: 1px solid rgba(71, 85, 105, 0.2);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summary-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.dark-mode .summary-label {
+  color: #94a3b8;
+}
+
+.summary-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.dark-mode .summary-value {
+  color: #f1f5f9;
+}
+
+/* Action Buttons - Fixed Footer */
+.preview-actions {
+  position: sticky;
+  bottom: 0;
+  background: #f8fafc;
+  border-top: 1px solid #e5e7eb;
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dark-mode .preview-actions {
+  background: #0f172a;
+  border-top: 1px solid rgba(71, 85, 105, 0.3);
+}
+
+.edit-controls {
+  display: flex;
+  gap: 12px;
+}
+
+/* Professional Button Styling */
+.save-button, .cancel-button, .edit-button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+}
+
+.save-button {
+  background: #10b981;
+  color: white;
+}
+
+.save-button:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.cancel-button {
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #e5e7eb;
+}
+
+.dark-mode .cancel-button {
+  color: #94a3b8;
+  border-color: rgba(71, 85, 105, 0.3);
+}
+
+.cancel-button:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.dark-mode .cancel-button:hover {
+  background: rgba(71, 85, 105, 0.1);
+  border-color: rgba(71, 85, 105, 0.5);
+}
+
+.edit-button {
+  background: white;
+  color: #3b82f6;
+  border: 1px solid #3b82f6;
+}
+
+.dark-mode .edit-button {
+  background: transparent;
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+.edit-button:hover {
+  background: rgba(59, 130, 246, 0.05);
+  transform: translateY(-1px);
+}
+
+/* Validation States */
+.edit-input.error {
+  border-color: #ef4444;
+}
+
+.edit-input.error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Loading State */
+.preview-content.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .editable-item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .source-mix-edit-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .summary-edit-grid {
+    grid-template-columns: 1fr;
+  }
+}
