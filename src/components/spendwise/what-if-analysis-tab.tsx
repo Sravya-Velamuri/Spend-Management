@@ -431,6 +431,7 @@ export default function WhatIfAnalysisTab({
       toast({ title: "Error", description: "Scenario name cannot be empty.", variant: "destructive"});
       return;
     }
+    
     const scenarioData: SavedScenario = {
       name: currentScenarioName.trim(),
       description: currentScenarioDescription.trim(),
@@ -441,14 +442,27 @@ export default function WhatIfAnalysisTab({
       activeCountryTariffAdjustments,
       activeDemandAdjustments, 
     };
+    
     if (typeof window !== 'undefined') {
+      // Save the scenario data
       localStorage.setItem(LOCAL_STORAGE_SCENARIO_DATA_PREFIX + scenarioData.name, JSON.stringify(scenarioData));
-      if (!savedScenarioNames.includes(scenarioData.name) || (isEditMode && selectedScenarioToLoad !== scenarioData.name)) {
-        let newNames = savedScenarioNames.filter(name => name !== selectedScenarioToLoad); 
-        newNames = [...newNames, scenarioData.name].sort();
-        setSavedScenarioNames(newNames);
-        localStorage.setItem(LOCAL_STORAGE_SCENARIO_LIST_KEY, JSON.stringify(newNames));
+      
+      // Update the scenario names list
+      let newNames = [...savedScenarioNames];
+      
+      if (isEditMode && selectedScenarioToLoad && selectedScenarioToLoad !== scenarioData.name) {
+        // Edit mode with name change: remove old name, add new name
+        newNames = newNames.filter(name => name !== selectedScenarioToLoad);
+        newNames.push(scenarioData.name);
+      } else if (!savedScenarioNames.includes(scenarioData.name)) {
+        // New scenario or edit mode with same name: just add if not exists
+        newNames.push(scenarioData.name);
       }
+      
+      // Sort and update the list
+      newNames.sort();
+      setSavedScenarioNames(newNames);
+      localStorage.setItem(LOCAL_STORAGE_SCENARIO_LIST_KEY, JSON.stringify(newNames));
     }
     
     toast({ title: "Scenario Saved", description: `Scenario "${scenarioData.name}" has been saved.`});
@@ -1000,6 +1014,54 @@ export default function WhatIfAnalysisTab({
             onClose={() => setIsCreateWorkspaceDialogOpen(false)}
             uniqueSupplierCountries={uniqueSupplierCountriesForAnalysis}
         />
+        <Dialog open={isSaveScenarioDialogOpen} onOpenChange={setIsSaveScenarioDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Save className="mr-2 h-5 w-5" />
+              {isEditMode ? "Edit Scenario" : "Save New Scenario"}
+            </DialogTitle>
+            <DialogDescription>
+              {isEditMode ? "Update the scenario details." : "Save your current what-if analysis as a scenario for future reference."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid items-center gap-1.5">
+              <Label htmlFor="scenarioName">Scenario Name</Label>
+              <Input
+                id="scenarioName"
+                value={currentScenarioName}
+                onChange={(e) => setCurrentScenarioName(e.target.value)}
+                placeholder="Enter scenario name..."
+                className="text-sm"
+              />
+            </div>
+            <div className="grid items-center gap-1.5">
+              <Label htmlFor="scenarioDescription">Description (Optional)</Label>
+              <Input
+                id="scenarioDescription"
+                value={currentScenarioDescription}
+                onChange={(e) => setCurrentScenarioDescription(e.target.value)}
+                placeholder="Brief description of this scenario..."
+                className="text-sm"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsSaveScenarioDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSaveScenario}>
+              <Save className="mr-2 h-4 w-4" />
+              {isEditMode ? "Update" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 }

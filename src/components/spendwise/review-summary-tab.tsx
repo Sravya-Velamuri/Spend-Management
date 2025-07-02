@@ -124,27 +124,25 @@ export default function ReviewSummaryTab({
   const formatNumber = (value: number) => new Intl.NumberFormat('en-US').format(value);
 
   const filteredAndCalculatedParts = useMemo(() => {
-    let tempFilteredParts = [...allParts];
-
-    if (filterSelectedCategory !== ALL_FILTER_VALUE) {
-      tempFilteredParts = tempFilteredParts.filter(p => p.id === filterSelectedPartId);
-    }
-
-    if (filterSelectedCategory !== ALL_FILTER_VALUE) {
-      const partsInCategory = new Set(allPartCategoryMappings
-        .filter(pcm => pcm.categoryName === filterSelectedCategory)
-        .map(pcm => pcm.partId)
-      );
-      tempFilteredParts = tempFilteredParts.filter(p => partsInCategory.has(p.id));
-    }
-
-    if (filterSelectedSupplierId !== ALL_FILTER_VALUE) {
-      const partsForSupplier = new Set(allPartSupplierAssociations
-        .filter(psa => psa.supplierId === filterSelectedSupplierId)
-        .map(psa => psa.partId)
-      );
-      tempFilteredParts = tempFilteredParts.filter(p => partsForSupplier.has(p.id));
-    }
+      let tempFilteredParts = [...allParts];
+  
+      // ✅ REMOVED the problematic line with filterSelectedPartId
+  
+      if (filterSelectedCategory !== ALL_FILTER_VALUE) {
+        const partsInCategory = new Set(allPartCategoryMappings
+          .filter(pcm => pcm.categoryName === filterSelectedCategory)
+          .map(pcm => pcm.partId)
+        );
+        tempFilteredParts = tempFilteredParts.filter(p => partsInCategory.has(p.id));
+      }
+    
+      if (filterSelectedSupplierId !== ALL_FILTER_VALUE) {
+        const partsForSupplier = new Set(allPartSupplierAssociations
+          .filter(psa => psa.supplierId === filterSelectedSupplierId)
+          .map(psa => psa.partId)
+        );
+        tempFilteredParts = tempFilteredParts.filter(p => partsForSupplier.has(p.id));
+      }
     
     return tempFilteredParts.map(part => {
       const partWithOriginalSpend = allPartsWithSpend.find(pws => pws.id === part.id);
@@ -154,7 +152,6 @@ export default function ReviewSummaryTab({
       };
     });
   }, [allParts, allPartsWithSpend, filterSelectedCategory, filterSelectedSupplierId, allPartCategoryMappings, allPartSupplierAssociations]);
-
 
   const displayMetrics = useMemo(() => {
     const currentTotalSpend = filteredAndCalculatedParts.reduce((sum, p) => sum + p.annualSpend, 0);

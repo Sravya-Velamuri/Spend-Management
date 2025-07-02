@@ -1275,7 +1275,7 @@ export default function SpendWiseCentralPage() {
                   <TooltipTrigger asChild>
                     <div className="flex items-center space-x-2">
                       <Shield className="h-4 w-4 text-muted-foreground" />
-                      <Label htmlFor="tariffRateMultiplierSlider" className="text-xs text-muted-foreground whitespace-nowrap">Tariff Mult:</Label>
+                      <Label htmlFor="tariffRateMultiplierSlider" className="text-xs text-muted-foreground whitespace-nowrap">Tariff Multiplier:</Label>
                       <Slider
                         id="tariffRateMultiplierSlider"
                         min={0}
