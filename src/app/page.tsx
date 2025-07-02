@@ -1411,7 +1411,7 @@ export default function SpendWiseCentralPage() {
                 </DropdownMenuContent>
                 </DropdownMenu>
 
-              {/* 5. SpendWiseBot */}
+              {/* 5. SpendWiseBot
               <SpendWiseBot
                 parts={parts}
                 suppliers={suppliers}
@@ -1424,7 +1424,7 @@ export default function SpendWiseCentralPage() {
                 totalParts={totalParts}
                 totalSuppliers={totalSuppliers}
                 totalCategories={totalCategories}
-              />
+              /> */}
               <input type="file" ref={fileInputRef} onChange={handleFileSelected} accept=".xml" style={{ display: 'none' }} />
 
               {/* 6. Clear All Data button */}
@@ -1570,11 +1570,11 @@ export default function SpendWiseCentralPage() {
               <TabsTrigger value="validate-spend-network" className="flex items-center justify-start gap-1 tabs-trigger-active-underline text-xs whitespace-normal h-14">
                 <ListChecks className="h-3.5 w-3.5" /> 5. Validate Spend Network
               </TabsTrigger>
-              <TabsTrigger value="what-if-analysis" className="flex items-center justify-start gap-1 tabs-trigger-active-underline text-xs whitespace-normal h-14">
-                <HelpCircle className="h-3.5 w-3.5" /> 6. What-if Analysis
+              <TabsTrigger value="review-summary" className="flex items-center justify-start gap-1 tabs-trigger-active-underline text-xs whitespace-normal h-14">
+                <BarChart3 className="h-3.5 w-3.5" /> 6. Review Spend
               </TabsTrigger>
-               <TabsTrigger value="review-summary" className="flex items-center justify-start gap-1 tabs-trigger-active-underline text-xs whitespace-normal h-14">
-                <BarChart3 className="h-3.5 w-3.5" /> 7. Review Spend
+              <TabsTrigger value="what-if-analysis" className="flex items-center justify-start gap-1 tabs-trigger-active-underline text-xs whitespace-normal h-14">
+                <HelpCircle className="h-3.5 w-3.5" /> 7. What-if Analysis
               </TabsTrigger>
               {/* Removed: Step 3 - Manage Workspace Tab Trigger */}
             </TabsList>

@@ -182,7 +182,7 @@ export default function UpdateSuppliersTab({ suppliers, setSuppliers, onAddSuppl
                <h3 className="text-base font-semibold text-muted-foreground">Supplier Details</h3>
               <div className="flex items-center gap-2 ml-auto">
                 <Button onClick={onAddSupplier} size="sm" className="text-xs">
-                  <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Add New Supplier
+                  <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Add Supplier
                 </Button>
                 <Button
                   variant="outline"
@@ -196,7 +196,7 @@ export default function UpdateSuppliersTab({ suppliers, setSuppliers, onAddSuppl
                   ) : (
                     <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />
                   )}
-                  {isUploadingExcel ? "Uploading..." : "Upload Excel"}
+                  {isUploadingExcel ? "Uploading..." : "Upload"}
                 </Button>
                 <input
                   ref={fileInputRef}

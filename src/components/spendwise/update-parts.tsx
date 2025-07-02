@@ -297,16 +297,17 @@ export default function UpdatePartsTab({
               })}
             </div>
             <div className="flex items-center gap-2 ml-auto sm:ml-0 self-start sm:self-center">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button onClick={onAddPart} size="icon" aria-label="Add New Part">
-                    <PlusCircle className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Add New Part</p>
-                </TooltipContent>
-              </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={onAddPart} size="sm" aria-label="Add New Part" className="px-3">
+                  <PlusCircle className="h-4 w-4 mr-1.5" />
+                  Add Part
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Add New Part</p>
+              </TooltipContent>
+            </Tooltip>
               {/* Added JSX for Excel Upload */}
               <Button
                 variant="outline"
@@ -320,7 +321,7 @@ export default function UpdatePartsTab({
                 ) : (
                   <FileSpreadsheet className="h-4 w-4 mr-1.5" />
                 )}
-                <span className="text-xs">{isUploadingExcel ? "Uploading..." : "Upload Excel"}</span>
+                <span className="text-xs">{isUploadingExcel ? "Uploading..." : "Upload"}</span>
               </Button>
               <input
                 ref={fileInputRef}

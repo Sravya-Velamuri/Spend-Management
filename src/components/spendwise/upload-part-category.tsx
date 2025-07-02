@@ -427,7 +427,7 @@ export default function UploadPartCategoryTab({
               ) : (
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
               )}
-              {isUploadingExcel ? "Uploading..." : "Upload Excel"}
+              {isUploadingExcel ? "Uploading..." : "Upload"}
             </Button>
           </div>
         </div>
