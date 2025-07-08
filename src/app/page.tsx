@@ -1217,6 +1217,27 @@ export default function SpendWiseCentralPage() {
     );
   }, [singleSourceParts, searchTermSingleSourceParts]);
 
+  // Function to open Manage Workspace in a popup window
+  const openManageWorkspacePopup = () => {
+    const width = Math.min(window.innerWidth * 0.9, 1400);
+    const height = Math.min(window.innerHeight * 0.9, 900);
+    const left = (window.innerWidth - width) / 2;
+    const top = (window.innerHeight - height) / 2;
+    
+    const popup = window.open(
+      '/manage-workspace-popup',
+      'ManageWorkspace',
+      `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+    );
+    
+    if (!popup) {
+      toast({
+        title: "Popup Blocked",
+        description: "Please allow popups for this site to use the Manage Workspace feature.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <TooltipProvider>
@@ -1393,7 +1414,7 @@ export default function SpendWiseCentralPage() {
                     <Sparkles className="mr-2 h-4 w-4" />
                     Release Notes
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsManageWorkspaceDialogOpen(true)}>
+                  <DropdownMenuItem onClick={openManageWorkspacePopup}>
                      <Building2 className="mr-2 h-4 w-4" />
                      Manage Workspace
                   </DropdownMenuItem>
@@ -1852,90 +1873,6 @@ export default function SpendWiseCentralPage() {
             <span>{formattedDateTime || "Loading time..."}</span>
           </div>
         </footer>
-        <GenerateDataDialog
-          isOpen={isGenerateDataDialogOpen}
-          onClose={() => setIsGenerateDataDialogOpen(false)}
-          onGenerate={handleGenerateData}
-          isGenerating={isGeneratingData}
-        />
-        <AppInfoDialog
-            isOpen={isAppInfoDialogOpen}
-            onClose={() => setIsAppInfoDialogOpen(false)}
-        />
-        <ReleaseNotesDialog
-            isOpen={isReleaseNotesDialogOpen}
-            onClose={() => setIsReleaseNotesDialogOpen(false)}
-        />
-        {/* Added: Step 5 - Manage Workspace Dialog */}
-        <Dialog open={isManageWorkspaceDialogOpen} onOpenChange={setIsManageWorkspaceDialogOpen}>
-          <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center">
-                <Building2 className="mr-2 h-5 w-5 text-primary" />
-                Manage Workspace
-              </DialogTitle>
-              <DialogDescription>
-                Create, manage, and collaborate on workspaces
-              </DialogDescription>
-            </DialogHeader>
-            <div className="mt-4">
-              <ManageWorkspaceTab
-                parts={parts}
-                suppliers={suppliers}
-                partSupplierAssociations={partSupplierAssociations}
-                partCategoryMappings={partCategoryMappings}
-                tariffRateMultiplier={tariffRateMultiplierPercent / 100}
-                totalLogisticsCostPercent={totalLogisticsCostPercent}
-                appHomeCountry={appHomeCountry}
-                appCurrency={appCurrency}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={isExcelUploadDialogOpen} onOpenChange={setIsExcelUploadDialogOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center">
-                <FileSpreadsheet className="mr-2 h-5 w-5" />
-                Upload Excel Workbook
-              </DialogTitle>
-              <DialogDescription>
-                Upload a single Excel file (.xlsx, .xls) with up to 4 sheets: "Parts", "Suppliers", "Supplier Mix" (or "SupplierMix", "SourceMix"), and "Parts Categories" (or "PartCategories"). Duplicate PartNumbers or SupplierIds will be skipped.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid items-center gap-1.5">
-                <Label htmlFor="excelFile">Excel Workbook (.xlsx, .xls)</Label>
-                <Input
-                  id="excelFile"
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                        handleProcessExcelWorkbook(file);
-                    }
-                    if (e.target) e.target.value = '';
-                  }}
-                  className="text-xs file:text-xs file:font-medium file:text-primary file:bg-primary-foreground hover:file:bg-accent/20 h-9"
-                  disabled={isUploadingExcel || isLoadingSampleData}
-                />
-              </div>
-               {isUploadingExcel && (
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing workbook...
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsExcelUploadDialogOpen(false)} disabled={isUploadingExcel || isLoadingSampleData}>
-                Cancel
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {uploadProgress && (
           <div className="fixed bottom-16 right-4 z-[100]">
@@ -2001,6 +1938,94 @@ export default function SpendWiseCentralPage() {
           </div>
         )}
       </div>
+      
+      {/* All Dialogs moved outside the zoomed container */}
+      <GenerateDataDialog
+        isOpen={isGenerateDataDialogOpen}
+        onClose={() => setIsGenerateDataDialogOpen(false)}
+        onGenerate={handleGenerateData}
+        isGenerating={isGeneratingData}
+      />
+      <AppInfoDialog
+          isOpen={isAppInfoDialogOpen}
+          onClose={() => setIsAppInfoDialogOpen(false)}
+      />
+      <ReleaseNotesDialog
+          isOpen={isReleaseNotesDialogOpen}
+          onClose={() => setIsReleaseNotesDialogOpen(false)}
+      />
+      {/* Manage Workspace Dialog - Commented out as we're using popup window instead
+      <Dialog open={isManageWorkspaceDialogOpen} onOpenChange={setIsManageWorkspaceDialogOpen}>
+        <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Building2 className="mr-2 h-5 w-5 text-primary" />
+              Manage Workspace
+            </DialogTitle>
+            <DialogDescription>
+              Create, manage, and collaborate on workspaces
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            <ManageWorkspaceTab
+              parts={parts}
+              suppliers={suppliers}
+              partSupplierAssociations={partSupplierAssociations}
+              partCategoryMappings={partCategoryMappings}
+              tariffRateMultiplier={tariffRateMultiplierPercent / 100}
+              totalLogisticsCostPercent={totalLogisticsCostPercent}
+              appHomeCountry={appHomeCountry}
+              appCurrency={appCurrency}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+      */}
+
+      <Dialog open={isExcelUploadDialogOpen} onOpenChange={setIsExcelUploadDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <FileSpreadsheet className="mr-2 h-5 w-5" />
+              Upload Excel Workbook
+            </DialogTitle>
+            <DialogDescription>
+              Upload a single Excel file (.xlsx, .xls) with up to 4 sheets: "Parts", "Suppliers", "Supplier Mix" (or "SupplierMix", "SourceMix"), and "Parts Categories" (or "PartCategories"). Duplicate PartNumbers or SupplierIds will be skipped.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid items-center gap-1.5">
+              <Label htmlFor="excelFile">Excel Workbook (.xlsx, .xls)</Label>
+              <Input
+                id="excelFile"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                      handleProcessExcelWorkbook(file);
+                  }
+                  if (e.target) e.target.value = '';
+                }}
+                className="text-xs file:text-xs file:font-medium file:text-primary file:bg-primary-foreground hover:file:bg-accent/20 h-9"
+                disabled={isUploadingExcel || isLoadingSampleData}
+              />
+            </div>
+             {isUploadingExcel && (
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing workbook...
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsExcelUploadDialogOpen(false)} disabled={isUploadingExcel || isLoadingSampleData}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       <SpendWiseChatbotModal
         isOpen={showSpendWiseChatbot}
         onClose={() => setShowSpendWiseChatbot(false)}
