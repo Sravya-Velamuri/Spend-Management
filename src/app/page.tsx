@@ -27,7 +27,7 @@ import {
   Package, Building, Building2, ArrowRightLeft, FolderTree, Sun, Moon, Sparkles, Loader2, Briefcase, Users, 
   DollarSignIcon, Globe, Shield, Lightbulb, MessageCircle, Wand2, FileX2, ArrowUpToLine, ArrowDownToLine, 
   FileSpreadsheet, HelpCircle, Home, Info, CheckCircle, ListChecks, Search, ExternalLink, AlertTriangle, 
-  BarChart3, FileText, Maximize2, Minimize2, CloudUpload, CloudDownload, ChevronDown, X, Plus, Minus, Trash2
+  BarChart3, FileText, Maximize2, Minimize2, CloudUpload, CloudDownload, ChevronDown, X, Plus, Minus, Trash2, Rocket
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -450,7 +450,9 @@ export default function SpendWiseCentralPage() {
     }
   };
 
-
+  const handleLaunchTADA = () => {
+    window.open('https://beta.tadanow.com/app/UCC-Total%20Cost%20of%20Ownership/SpendManagement/home', '_blank', 'noopener,noreferrer');
+  };
 
   const handleLoadButtonClick = () => {
     fileInputRef.current?.click();
@@ -1401,6 +1403,10 @@ export default function SpendWiseCentralPage() {
                   >
                     <CloudDownload className="mr-2 h-4 w-4" />
                     Download from TADA
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLaunchTADA}>
+                    <Rocket className="mr-2 h-4 w-4" />
+                    Launch TADA
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLoadButtonClick}>
                     <ArrowUpToLine className="mr-2 h-4 w-4" />
