@@ -85,6 +85,8 @@ export default function UpdatePartsTab({
 }: UpdatePartsTabProps) {
 
   const [selectedPartId, setSelectedPartId] = useState<string | null>(null);
+  const [editingPartId, setEditingPartId] = useState<string | null>(null);
+  const [editedPart, setEditedPart] = useState<Partial<Part> | null>(null);
   const [isPart360Open, setIsPart360Open] = useState(false);
   const [part360Details, setPart360Details] = useState<Part360Details | null>(null);
   const [isUploadingExcel, setIsUploadingExcel] = useState(false);
@@ -115,7 +117,26 @@ export default function UpdatePartsTab({
       setPart360Details(null);
     }
   };
+  const handleEditPart = (part: Part) => {
+    setEditingPartId(part.id);
+    setEditedPart({ ...part });
+  };
+  const handleSavePart = () => {
+    if (!editedPart || !editingPartId) return;
 
+    setParts(prevParts =>
+      prevParts.map(p =>
+        p.id === editingPartId ? { ...p, ...editedPart } : p
+      )
+    );
+    setEditingPartId(null);
+    setEditedPart(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPartId(null);
+    setEditedPart(null);
+  };
   const handleExcelUpload = async (file: File) => {
     setIsUploadingExcel(true);
     try {
@@ -450,7 +471,7 @@ export default function UpdatePartsTab({
 
           {/* Enhanced Parts Table */}
           <div className="space-y-3 text-xs">
-            <Table className="border rounded-lg">
+          <Table className="border rounded-lg">
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-center">Part #</TableHead>
@@ -465,32 +486,116 @@ export default function UpdatePartsTab({
               <TableBody>
                 {filteredParts.map((part) => {
                   const abcClass = individualPartAbcClasses[part.id];
+                  const isEditing = editingPartId === part.id;
                   return (
                     <TableRow key={part.id}>
                       <TableCell className="text-center">
-                        <span className="font-mono text-blue-400 hover:text-blue-300 transition-colors duration-200 truncate block w-full">
-                          {part.partNumber}
-                        </span>
+                        {isEditing ? (
+                          <Input
+                            type="text"
+                            value={editedPart?.partNumber ?? ''}
+                            onChange={(e) => setEditedPart({ ...editedPart, partNumber: e.target.value })}
+                            className="h-8"
+                          />
+                        ) : (
+                          <span className="font-mono text-blue-400 hover:text-blue-300 transition-colors duration-200 truncate block w-full">
+                            {part.partNumber}
+                          </span>
+                        )}
                       </TableCell>
-                      <TableCell className="text-left">{part.name}</TableCell>
-                      <TableCell className="text-right">{part.price}</TableCell>
-                      <TableCell className="text-right">{part.annualDemand}</TableCell>
-                      <TableCell className="text-right">{part.freightOhdCost}</TableCell>
+                      <TableCell className="text-left">
+                        {isEditing ? (
+                          <Input
+                            type="text"
+                            value={editedPart?.name ?? ''}
+                            onChange={(e) => setEditedPart({ ...editedPart, name: e.target.value })}
+                            className="h-8"
+                          />
+                        ) : (
+                          part.name
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            value={editedPart?.price ?? ''}
+                            onChange={(e) => setEditedPart({ ...editedPart, price: parseFloat(e.target.value) || 0 })}
+                            className="h-8 text-right"
+                          />
+                        ) : (
+                          part.price
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            value={editedPart?.annualDemand ?? ''}
+                            onChange={(e) => setEditedPart({ ...editedPart, annualDemand: parseInt(e.target.value) || 0 })}
+                            className="h-8 text-right"
+                          />
+                        ) : (
+                          part.annualDemand
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            value={editedPart?.freightOhdCost ?? ''}
+                            onChange={(e) => setEditedPart({ ...editedPart, freightOhdCost: parseFloat(e.target.value) || 0 })}
+                            className="h-8 text-right"
+                          />
+                        ) : (
+                          part.freightOhdCost
+                        )}
+                      </TableCell>
                       <TableCell className="text-center">
                         <AbcIndicator category={abcClass || 'N/A'} />
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all duration-200"
-                          >
-                            <Edit3 className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeletePart(part.id)} aria-label="Delete Part">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {isEditing ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={handleSavePart}
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-green-400 hover:bg-green-500/10 transition-all duration-200"
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={handleCancelEdit}
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEditPart(part)}
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all duration-200"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeletePart(part.id)}
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                                aria-label="Delete Part"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -498,7 +603,6 @@ export default function UpdatePartsTab({
                 })}
               </TableBody>
             </Table>
-            
             <div className="mt-4 p-3 border rounded-md bg-muted/50">
               <h4 className="text-sm font-semibold mb-2 flex items-center"><Sigma className="h-4 w-4 mr-1.5"/>Summary</h4>
               <div className="grid grid-cols-3 gap-3 text-xs">
