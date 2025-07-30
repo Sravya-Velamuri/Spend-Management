@@ -41,11 +41,24 @@ interface UpdatePartsTabProps {
   appCurrency: CurrencyInfo;
 }
 
-const ABC_COLORS = {
-  A: "hsl(var(--chart-1))", 
-  B: "hsl(var(--chart-2))", 
-  C: "hsl(var(--chart-3))", 
+// A small, reusable component for the ABC category indicator
+const AbcIndicator = ({ category }: { category: 'A' | 'B' | 'C' | 'N/A' }) => {
+  if (category === 'N/A') return null;
+  return (
+    <div
+      className={`inline-block px-2 py-1 rounded text-xs font-bold ${
+        category === 'A'
+          ? 'bg-red-600/20 text-red-400 border border-red-600/30'
+          : category === 'B'
+          ? 'bg-yellow-600/20 text-yellow-400 border border-yellow-600/30'
+          : 'bg-green-600/20 text-green-400 border border-green-600/30'
+      }`}
+    >
+      {category}
+    </div>
+  );
 };
+
 
 interface Part360Details extends Part {
   categories: string[];
@@ -381,7 +394,7 @@ export default function UpdatePartsTab({
                         {category === 'B' && <Minus className="h-3.5 w-3.5 text-yellow-400" />}
                         {category === 'C' && <TrendingDown className="h-3.5 w-3.5 text-green-400" />}
                         <span className="font-bold text-sm">
-                          {category === 'All' ? 'All' : `Class ${category}`}
+                          {category === 'All' ? 'All' : `Category ${category}`}
                         </span>
                       </div>
 
@@ -414,7 +427,7 @@ export default function UpdatePartsTab({
                     <>
                       <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></div>
                       <div className="text-xs text-slate-300">
-                        <span className="font-semibold text-red-400">Class A:</span> Critical items (70-80% value, 10-20% items) - Tight control required
+                        <span className="font-semibold text-red-400">Category A:</span> Critical items (70-80% value, 10-20% items) - Tight control required
                       </div>
                     </>
                   )}
@@ -422,7 +435,7 @@ export default function UpdatePartsTab({
                     <>
                       <div className="w-2 h-2 bg-yellow-500 rounded-full flex-shrink-0"></div>
                       <div className="text-xs text-slate-300">
-                        <span className="font-semibold text-yellow-400">Class B:</span> Moderate items (15-20% value, 20-30% items) - Periodic review
+                        <span className="font-semibold text-yellow-400">Category B:</span> Moderate items (15-20% value, 20-30% items) - Periodic review
                       </div>
                     </>
                   )}
@@ -430,7 +443,7 @@ export default function UpdatePartsTab({
                     <>
                       <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
                       <div className="text-xs text-slate-300">
-                        <span className="font-semibold text-green-400">Class C:</span> Low value items (5-10% value, 50-70% items) - Simple controls
+                        <span className="font-semibold text-green-400">Category C:</span> Low value items (5-10% value, 50-70% items) - Simple controls
                       </div>
                     </>
                   )}
@@ -456,7 +469,7 @@ export default function UpdatePartsTab({
                 <div className="flex items-center gap-2">
                   {selectedABCCategory !== 'All' && (
                     <Badge variant="secondary" className="flex items-center gap-1">
-                      <span>Class {selectedABCCategory}</span>
+                      <span>Category {selectedABCCategory}</span>
                       <button
                         onClick={() => setSelectedABCCategory('All')}
                         className="ml-1 hover:text-red-400 transition-colors"
@@ -494,7 +507,7 @@ export default function UpdatePartsTab({
               <div className="w-24 text-right">Base Cost</div>
               <div className="w-28 text-right">Annual Volume</div>
               <div className="w-28 text-right">Freight & OHD %</div>
-              <div className="w-20 text-center">ABC Class</div>
+              <div className="w-20 text-center">ABC Category</div>
               <div className="w-10"> {/* Spacer for delete */} </div>
             </div>
 
@@ -551,15 +564,7 @@ export default function UpdatePartsTab({
                           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
                         </div>
                         <div className="w-20 flex justify-center">
-                          {abcClass && (
-                            <Badge 
-                              variant="outline" 
-                              className="text-xs px-2 py-1"
-                              style={{borderColor: ABC_COLORS[abcClass]}}
-                            >
-                              {abcClass}
-                            </Badge>
-                          )}
+                          <AbcIndicator category={abcClass || 'N/A'} />
                         </div>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeletePart(part.id)} aria-label="Delete Part">
                           <Trash2 className="h-4 w-4" />
@@ -628,11 +633,9 @@ export default function UpdatePartsTab({
                     </CardHeader>
                     <CardContent className="p-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                        <div>Annual Volume:</div><div className="font-medium text-right">{formatNumber(part360Details.annualDemand)} units</div>
-                       <div>ABC Class:</div>
+                       <div>ABC Category:</div>
                        <div className="font-medium text-right">
-                         <Badge variant="outline" style={{borderColor: ABC_COLORS[part360Details.abcClass as 'A'|'B'|'C'] || 'grey'}}>
-                            {part360Details.abcClass}
-                         </Badge>
+                         <AbcIndicator category={part360Details.abcClass} />
                         </div>
                     </CardContent>
                   </Card>
