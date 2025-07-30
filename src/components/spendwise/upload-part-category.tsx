@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import type { Part, PartCategoryMapping } from '@/types/spendwise';
+import type { Part, PartCategoryMapping } from '@/types/spendwise'; // test
 import type { SpendDataPoint, CountDataPoint } from '@/app/page';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
