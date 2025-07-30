@@ -467,7 +467,11 @@ export default function UpdatePartsTab({
                   const abcClass = individualPartAbcClasses[part.id];
                   return (
                     <TableRow key={part.id}>
-                      <TableCell>{part.partNumber}</TableCell>
+                      <TableCell>
+                        <span className="font-mono text-blue-400 hover:text-blue-300 transition-colors duration-200 text-left truncate block w-full">
+                          {part.partNumber}
+                        </span>
+                      </TableCell>
                       <TableCell>{part.name}</TableCell>
                       <TableCell>{part.price}</TableCell>
                       <TableCell>{part.annualDemand}</TableCell>
