@@ -18,6 +18,7 @@ import type { CurrencyInfo } from '@/lib/currencyConfig';
 import { parsePartsExcel } from './excel-parser'; // Added import
 import { useToast } from "@/hooks/use-toast"; // Assuming toast is from here
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface UpdatePartsTabProps {
   parts: Part[];
@@ -104,57 +105,6 @@ export default function UpdatePartsTab({
 
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat('en-US').format(value);
-  };
-
-  const formatPriceForInput = (value: number): string => {
-    const fixedValue = value.toFixed(2);
-    const priceParts = fixedValue.split('.');
-    const integerPartFormatted = new Intl.NumberFormat('en-US').format(parseInt(priceParts[0], 10));
-    return `${integerPartFormatted}.${priceParts[1]}`;
-  };
-
-  const handlePartInputChange = (partId: string, field: keyof Part, value: string | number) => {
-    setParts(prevParts =>
-      prevParts.map(p => {
-        if (p.id === partId) {
-          let processedValue = value;
-          if (field === 'price') {
-            const numericValue = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : value;
-            processedValue = isNaN(numericValue) ? 0 : parseFloat(numericValue.toFixed(2));
-          } else if (field === 'annualDemand') {
-            const numericValue = typeof value === 'string' ? parseInt(String(value).replace(/,/g, ''), 10) : parseInt(String(value), 10);
-            processedValue = isNaN(numericValue) ? 0 : numericValue;
-          } else if (field === 'freightOhdCost') {
-            const numericValue = typeof value === 'string' ? parseFloat(value) / 100 : Number(value) / 100;
-             processedValue = (isNaN(numericValue) || numericValue < 0) ? 0 : Math.min(numericValue, 1);
-          }
-          return { ...p, [field]: processedValue };
-        }
-        return p;
-      })
-    );
-  };
-  
-  const handlePriceChange = (partId: string, rawValue: string) => {
-    handlePartInputChange(partId, 'price', rawValue);
-  };
-
-  const handleAnnualDemandChange = (partId: string, rawValue: string) => {
-    const cleanedValue = rawValue.replace(/,/g, '');
-    if (cleanedValue === '') {
-      handlePartInputChange(partId, 'annualDemand', 0);
-      return;
-    }
-    const numericValue = parseInt(cleanedValue, 10);
-    if (!isNaN(numericValue)) {
-      handlePartInputChange(partId, 'annualDemand', numericValue);
-    }
-  };
-
-  const handlePartNameChange = (partId: string, value: string) => {
-     setParts(prevParts =>
-      prevParts.map(p => p.id === partId ? { ...p, name: value } : p)
-    );
   };
 
   const handleDeletePart = (partId: string) => {
@@ -500,81 +450,41 @@ export default function UpdatePartsTab({
 
           {/* Enhanced Parts Table */}
           <div className="space-y-3 text-xs">
-            <div className="flex items-center gap-2 px-2 py-1 text-xs font-medium text-muted-foreground">
-              <div className="w-10"> {/* Spacer for radio */} </div>
-              <div className="w-24 flex-shrink-0">Part #</div>
-              <div className="flex-1 min-w-[120px]">Part Name</div>
-              <div className="w-24 text-right">Base Cost</div>
-              <div className="w-28 text-right">Annual Volume</div>
-              <div className="w-28 text-right">Freight & OHD %</div>
-              <div className="w-20 text-center">ABC Category</div>
-              <div className="w-10"> {/* Spacer for delete */} </div>
-            </div>
-
-            {filteredParts.length === 0 ? (
-              <p className="text-muted-foreground text-center py-3">No parts available. Generate, add, or upload some parts.</p>
-            ) : (
-              <ScrollArea className="h-[calc(100vh-380px)]">
-                <RadioGroup value={selectedPartId || undefined} onValueChange={setSelectedPartId} className="space-y-2 pr-2">
-                  {filteredParts.map((part) => {
-                    const abcClass = individualPartAbcClasses[part.id];
-                    return (
-                      <div key={part.id} className="flex items-center gap-2 p-2.5 rounded-md border bg-card shadow-sm hover:shadow-md transition-shadow">
-                        <RadioGroupItem value={part.id} id={`part-${part.id}`} className="h-5 w-5" />
-
-                        <div className="w-24 flex-shrink-0 font-mono text-xs truncate" title={part.partNumber}>
-                          {part.partNumber}
-                        </div>
-
-                        <Input
-                          type="text"
-                          value={part.name}
-                          onChange={(e) => handlePartNameChange(part.id, e.target.value)}
-                          className="h-8 text-xs flex-1 min-w-[120px]"
-                          placeholder="Part Name"
-                        />
-                        <div className="relative w-24">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{appCurrency.symbol}</span>
-                          <Input
-                            type="text"
-                            value={formatPriceForInput(part.price)}
-                            onChange={(e) => handlePriceChange(part.id, e.target.value)}
-                            className="h-8 text-xs pl-5 text-right"
-                            placeholder="0.00"
-                          />
-                        </div>
-                        <Input
-                          type="text"
-                          value={formatNumber(part.annualDemand)}
-                          onChange={(e) => handleAnnualDemandChange(part.id, e.target.value)}
-                          className="h-8 text-xs w-28 text-right"
-                          placeholder="0"
-                        />
-                        <div className="relative w-28">
-                          <Input
-                            type="number"
-                            value={parseFloat((part.freightOhdCost * 100).toFixed(2))}
-                            onChange={(e) => handlePartInputChange(part.id, 'freightOhdCost', e.target.value)}
-                            className="h-8 text-xs pr-5 text-right"
-                            placeholder="0"
-                            step="0.01"
-                            min="0"
-                            max="100"
-                          />
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
-                        </div>
-                        <div className="w-20 flex justify-center">
-                          <AbcIndicator category={abcClass || 'N/A'} />
-                        </div>
+            <Table className="border rounded-lg">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Part #</TableHead>
+                  <TableHead>Part Name</TableHead>
+                  <TableHead>Base Cost</TableHead>
+                  <TableHead>Annual Volume</TableHead>
+                  <TableHead>Freight & OHD %</TableHead>
+                  <TableHead>ABC Category</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredParts.map((part) => {
+                  const abcClass = individualPartAbcClasses[part.id];
+                  return (
+                    <TableRow key={part.id}>
+                      <TableCell>{part.partNumber}</TableCell>
+                      <TableCell>{part.name}</TableCell>
+                      <TableCell>{part.price}</TableCell>
+                      <TableCell>{part.annualDemand}</TableCell>
+                      <TableCell>{part.freightOhdCost}</TableCell>
+                      <TableCell>
+                        <AbcIndicator category={abcClass || 'N/A'} />
+                      </TableCell>
+                      <TableCell>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeletePart(part.id)} aria-label="Delete Part">
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </div>
-                    );
-                  })}
-                </RadioGroup>
-              </ScrollArea>
-            )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
             
             <div className="mt-4 p-3 border rounded-md bg-muted/50">
               <h4 className="text-sm font-semibold mb-2 flex items-center"><Sigma className="h-4 w-4 mr-1.5"/>Summary</h4>
