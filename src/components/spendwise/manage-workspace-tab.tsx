@@ -361,7 +361,7 @@ export default function ManageWorkspaceTab({
   };
 
   const handleArchiveWorkspace = (workspace: Workspace) => {
-    const newStatus = workspace.status === 'active' ? 'archived' : 'active';
+    const newStatus: 'active' | 'archived' = workspace.status === 'active' ? 'archived' : 'active';
     const activity = addActivityLog(workspace, `Workspace ${newStatus}`, `Changed from ${workspace.status} to ${newStatus}`);
     
     const updated = workspaces.map(ws => 
@@ -392,7 +392,7 @@ export default function ManageWorkspaceTab({
     if (!selectedWorkspace || !shareEmail) return;
     
     // Validate email domain
-    if (!validateEmailDomain(shareEmail)) {
+    if (!validateEmailDomain(shareEmail, selectedWorkspace.companyDomain)) {
       toast({
         title: "Invalid Email Domain",
         description: `Only users with @${userCompanyDomain} email addresses can be added to workspaces.`,
