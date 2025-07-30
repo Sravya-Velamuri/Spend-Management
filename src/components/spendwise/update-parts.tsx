@@ -453,13 +453,13 @@ export default function UpdatePartsTab({
             <Table className="border rounded-lg">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Part #</TableHead>
-                  <TableHead>Part Name</TableHead>
-                  <TableHead>Base Cost</TableHead>
-                  <TableHead>Annual Volume</TableHead>
-                  <TableHead>Freight & OHD %</TableHead>
-                  <TableHead>ABC Category</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="text-center">Part #</TableHead>
+                  <TableHead className="text-left">Part Name</TableHead>
+                  <TableHead className="text-right">Base Cost</TableHead>
+                  <TableHead className="text-right">Annual Volume</TableHead>
+                  <TableHead className="text-right">Freight & OHD %</TableHead>
+                  <TableHead className="text-center">ABC Category</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -467,22 +467,31 @@ export default function UpdatePartsTab({
                   const abcClass = individualPartAbcClasses[part.id];
                   return (
                     <TableRow key={part.id}>
-                      <TableCell>
-                        <span className="font-mono text-blue-400 hover:text-blue-300 transition-colors duration-200 text-left truncate block w-full">
+                      <TableCell className="text-center">
+                        <span className="font-mono text-blue-400 hover:text-blue-300 transition-colors duration-200 truncate block w-full">
                           {part.partNumber}
                         </span>
                       </TableCell>
-                      <TableCell>{part.name}</TableCell>
-                      <TableCell>{part.price}</TableCell>
-                      <TableCell>{part.annualDemand}</TableCell>
-                      <TableCell>{part.freightOhdCost}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-left">{part.name}</TableCell>
+                      <TableCell className="text-right">{part.price}</TableCell>
+                      <TableCell className="text-right">{part.annualDemand}</TableCell>
+                      <TableCell className="text-right">{part.freightOhdCost}</TableCell>
+                      <TableCell className="text-center">
                         <AbcIndicator category={abcClass || 'N/A'} />
                       </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeletePart(part.id)} aria-label="Delete Part">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all duration-200"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeletePart(part.id)} aria-label="Delete Part">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
