@@ -219,9 +219,9 @@ export default function UpdatePartsTab({
     return summary;
   }, [partsWithSpend, individualPartAbcClasses]);
 
-  // Filter parts based on search and ABC category
+  // Filter and sort parts based on search and ABC category
   const filteredParts = useMemo(() => {
-    return parts.filter(part => {
+    const filtered = parts.filter(part => {
       // Search filter
       const matchesSearch = part.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         part.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -232,7 +232,17 @@ export default function UpdatePartsTab({
 
       return matchesSearch && matchesABC;
     });
+
+    // Sort by ABC Category alphabetically
+    filtered.sort((a, b) => {
+      const abcA = individualPartAbcClasses[a.id] || 'Z'; // Default to 'Z' to sort unclassified parts last
+      const abcB = individualPartAbcClasses[b.id] || 'Z';
+      return abcA.localeCompare(abcB);
+    });
+
+    return filtered;
   }, [parts, searchTerm, selectedABCCategory, individualPartAbcClasses]);
+
 
   useEffect(() => {
     if (selectedPartId) {
@@ -462,7 +472,7 @@ export default function UpdatePartsTab({
                     </Badge>
                   )}
                   <span className="text-sm text-slate-400">
-                    {filteredParts.length} of {parts.length} parts
+                   {filteredParts.length} of {parts.length} parts
                   </span>
                 </div>
               )}
@@ -515,18 +525,20 @@ export default function UpdatePartsTab({
                           part.name
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
-                        {isEditing ? (
-                          <Input
-                            type="number"
-                            value={editedPart?.price ?? ''}
-                            onChange={(e) => setEditedPart({ ...editedPart, price: parseFloat(e.target.value) || 0 })}
-                            className="h-8 text-right"
-                          />
-                        ) : (
-                          part.price
-                        )}
-                      </TableCell>
+                       <TableCell className="text-right">
+                            {isEditing ? (
+                              <Input
+                                type="number"
+                                value={editedPart?.price ?? ''}
+                                onChange={(e) => setEditedPart({ ...editedPart, price: parseFloat(e.target.value) || 0 })}
+                                className="h-8 text-right"
+                              />
+                            ) : (
+                              <span className="text-green-400 font-bold">
+                                {formatCurrency(part.price, 2)}
+                              </span>
+                            )}
+                          </TableCell>
                       <TableCell className="text-right">
                         {isEditing ? (
                           <Input
