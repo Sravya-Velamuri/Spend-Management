@@ -157,6 +157,10 @@ export default function SpendWiseCentralPage() {
     return countries.sort();
   }, [suppliers]);
 
+  const totalVolume = useMemo(() => {
+    return parts.reduce((sum, p) => sum + p.annualDemand, 0);
+    }, [parts]);
+
 
   useEffect(() => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -1871,14 +1875,72 @@ export default function SpendWiseCentralPage() {
             {/* Removed: Step 4 - Manage Workspace Tab Content */}
           </Tabs>
         </main>
-        <footer className="flex h-12 items-center justify-between border-t bg-card px-4 py-3 text-xs text-muted-foreground sm:px-6 lg:px-8 shadow-md">
-          <div>
-            <span>Copyright TADA Cognitive 2025</span>
-          </div>
-          <div>
-            <span>{formattedDateTime || "Loading time..."}</span>
-          </div>
-        </footer>
+
+  
+
+          <footer className="bg-card border-t shadow-lg">
+            <div className="container mx-auto px-4 py-4 sm:px-6">
+              {/* Mobile Layout - Vertical Stack */}
+              <div className="block sm:hidden">
+                <div className="flex items-center justify-center mb-4">
+                  <span className="text-xl font-bold text-foreground mr-2">Σ</span>
+                  <span className="text-lg font-semibold text-foreground">Summary</span>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="text-center bg-muted/50 rounded p-3">
+                    <div className="text-lg font-bold text-foreground">{totalParts.toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground font-medium">Total # Parts</div>
+                  </div>
+                  
+                  <div className="text-center bg-muted/50 rounded p-3">
+                    <div className="text-lg font-bold text-green-500">
+                      {formatCurrencyDisplay(totalAnnualSpend)}
+                    </div>
+                    <div className="text-sm text-muted-foreground font-medium">Total Spend</div>
+                  </div>
+                  
+                  <div className="text-center bg-muted/50 rounded p-3">
+                    <div className="text-lg font-bold text-blue-500">
+                      {totalVolume.toLocaleString()}
+                    </div>
+                    <div className="text-sm text-muted-foreground font-medium">Total Volume</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop Layout - Horizontal */}
+              <div className="hidden sm:flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <span className="text-2xl font-bold text-foreground">Σ</span>
+                  <span className="text-lg font-semibold text-foreground">Summary</span>
+                </div>
+                
+                <div className="flex items-center space-x-8 lg:space-x-16">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-foreground">{totalParts.toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground font-medium">Total # Parts</div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-green-500">
+                      {formatCurrencyDisplay(totalAnnualSpend)}
+                    </div>
+                    <div className="text-sm text-muted-foreground font-medium">Total Spend</div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-blue-500">
+                      {totalVolume.toLocaleString()}
+                    </div>
+                    <div className="text-sm text-muted-foreground font-medium">Total Volume</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </footer>
+
+
 
         {uploadProgress && (
           <div className="fixed bottom-16 right-4 z-[100]">

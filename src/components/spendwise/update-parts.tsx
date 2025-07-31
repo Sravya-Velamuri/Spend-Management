@@ -615,23 +615,6 @@ export default function UpdatePartsTab({
                 })}
               </TableBody>
             </Table>
-            <div className="mt-4 p-3 border rounded-md bg-muted/50">
-              <h4 className="text-sm font-semibold mb-2 flex items-center"><Sigma className="h-4 w-4 mr-1.5"/>Summary</h4>
-              <div className="grid grid-cols-3 gap-3 text-xs">
-                <div>
-                  <p className="text-muted-foreground">Total # Parts:</p>
-                  <p className="font-medium">{formatNumber(totalPartsCount)}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Total Spend:</p>
-                  <p className="font-medium">{formatCurrency(totalSpend)}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Total Volume:</p>
-                  <p className="font-medium">{formatNumber(totalVolume)}</p>
-                </div>
-              </div>
-            </div>
           </div>
         </CardContent>
       </Card>
